@@ -42,15 +42,6 @@
 		"text": "[[global:header.popular]]"
 	},
 	{
-		"route": "/unanswered",
-		"title": "Unanswered",
-		"enabled": true,
-		"groups": ["administrators"],
-		"iconClass": "fa-question-circle",
-		"textClass": "d-lg-none",
-		"text": "Unanswered"
-	},
-	{
 		"route": "/world",
 		"title": "[[global:header.world]]",
 		"enabled": true,

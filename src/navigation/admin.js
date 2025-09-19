@@ -85,49 +85,6 @@ admin.get = async function () {
 	return cache.map(item => ({ ...item }));
 };
 
-// Ensure default core navigation items from install/data/navigation.json are present
-admin.ensureDefaults = async function () {
-	try {
-		const core = require('../../install/data/navigation.json').map(item => ({ ...item }));
-		const ids = await db.getSortedSetRange('navigation:enabled', 0, -1);
-		const existing = ids.length ? await db.getObjects(ids.map(id => `navigation:enabled:${id}`)) : [];
-		const existingRoutes = existing.filter(Boolean).map(item => item.originalRoute || item.route || '');
-
-		const toAdd = core.filter((item) => {
-			// compare against originalRoute or route
-			const route = item.route || '';
-			return !existingRoutes.includes(route);
-		});
-
-		if (!toAdd.length) {
-			return;
-		}
-
-		// Append missing items preserving order after existing
-		const currentCount = ids.length || 0;
-		const bulkSet = [];
-		const newOrder = [];
-		toAdd.forEach((item, idx) => {
-			const order = String(currentCount + idx);
-			item.order = order;
-			if (item.hasOwnProperty('groups')) {
-				item.groups = JSON.stringify(item.groups);
-			}
-			bulkSet.push([`navigation:enabled:${order}`, item]);
-			newOrder.push(order);
-		});
-
-		// Persist the objects and update the sorted set
-		await db.setObjectBulk(bulkSet);
-		// Add to sorted set with score equal to order
-		await db.sortedSetAdd('navigation:enabled', newOrder, newOrder);
-		cache = null;
-		pubsub.publish('admin:navigation:save');
-	} catch (err) {
-		winston.error(`[navigation.ensureDefaults] ${err.stack}`);
-	}
-};
-
 admin.update = async function (route, data) {
 	const ids = await db.getSortedSetRange('navigation:enabled', 0, -1);
 	const navItems = await db.getObjects(ids.map(id => `navigation:enabled:${id}`));

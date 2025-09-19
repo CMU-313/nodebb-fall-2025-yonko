@@ -105,15 +105,6 @@ async function initializeNodeBB() {
 	const middleware = require('./middleware');
 	await meta.themes.setupPaths();
 	await plugins.init(app, middleware);
-	// Ensure core navigation defaults are present in DB (adds missing items from install/data)
-	try {
-		const navAdmin = require('./navigation/admin');
-		if (typeof navAdmin.ensureDefaults === 'function') {
-			await navAdmin.ensureDefaults();
-		}
-	} catch (err) {
-		winston.error(`[startup] error ensuring default navigation: ${err.stack}`);
-	}
 	await plugins.hooks.fire('static:assets.prepare', {});
 	await plugins.hooks.fire('static:app.preload', {
 		app: app,

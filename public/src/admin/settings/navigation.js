@@ -33,7 +33,7 @@ define('admin/settings/navigation', [
 				const newIconClass = el.attr('value');
 				const index = iconEl.parents('[data-index]').attr('data-index');
 				$('#active-navigation [data-index="' + index + '"] i.nav-icon').attr('class', 'fa fa-fw ' + newIconClass);
-				iconEl.siblings('[name=""]').val(newIconClass);
+				iconEl.siblings('[name="iconClass"]').val(newIconClass);
 				iconEl.siblings('.change-icon-link').toggleClass('hidden', !!newIconClass);
 			});
 		});

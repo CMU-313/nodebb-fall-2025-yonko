@@ -24,6 +24,7 @@ Controllers.recent = require('./recent');
 Controllers.popular = require('./popular');
 Controllers.top = require('./top');
 Controllers.tags = require('./tags');
+Controllers.unanswered = require('./unanswered');
 Controllers.search = require('./search');
 Controllers.user = require('./user');
 Controllers.users = require('./users');

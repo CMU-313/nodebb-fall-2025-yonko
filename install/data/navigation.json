@@ -45,7 +45,6 @@
 		"route": "/unanswered",
 		"title": "Unanswered",
 		"enabled": true,
-		"groups": ["administrators"],
 		"iconClass": "fa-question-circle",
 		"textClass": "d-lg-none",
 		"text": "Unanswered"

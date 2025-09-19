@@ -88,7 +88,7 @@ admin.get = async function () {
 // Ensure default core navigation items from install/data/navigation.json are present
 admin.ensureDefaults = async function () {
 	try {
-		const core = require('../../install/data/navigation.json').map(item => ({ ...item }));
+		const core = require('../../install/data/navigation.json').map((item) => ({ ...item }));
 		const ids = await db.getSortedSetRange('navigation:enabled', 0, -1);
 		const existing = ids.length ? await db.getObjects(ids.map(id => `navigation:enabled:${id}`)) : [];
 		const existingRoutes = existing.filter(Boolean).map(item => item.originalRoute || item.route || '');

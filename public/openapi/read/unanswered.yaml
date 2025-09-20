@@ -1,0 +1,25 @@
+get:
+  tags:
+    - topics
+  summary: Unanswered topics
+  description: Returns a list of unanswered topics for the current user (read-only)
+  responses:
+    "200":
+      description: An object containing a list of topics and common page props
+      content:
+        application/json:
+          schema:
+            allOf:
+              - type: object
+                properties:
+                  title:
+                    type: string
+                  pageCount:
+                    type: number
+                  topics:
+                    type: array
+                    items:
+                      $ref: ../components/schemas/TopicObject.yaml#/TopicObjectSlim
+              - $ref: ../components/schemas/Pagination.yaml#/Pagination
+              - $ref: ../components/schemas/Breadcrumbs.yaml#/Breadcrumbs
+              - $ref: ../components/schemas/CommonProps.yaml#/CommonProps

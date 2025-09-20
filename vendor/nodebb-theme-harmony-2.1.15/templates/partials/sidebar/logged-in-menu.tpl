@@ -21,3 +21,11 @@
 <li component="sidebar/drafts" class="nav-item mx-2 drafts dropstart" title="[[global:header.drafts]]" role="menuitem">
 <!-- IMPORT partials/sidebar/drafts.tpl -->
 </li>
+
+{{{ if isAdmin }}}
+<li class="nav-item mx-2 unanswered dropstart" title="Unanswered" role="menuitem">
+	<a href="#" onclick="console.log('Unanswered click'); return false;" class="nav-link d-flex gap-2 align-items-center text-truncate" role="button" aria-label="Unanswered">
+		<span><i class="fa fa-question-circle fa-fw"></i></span>
+	</a>
+</li>
+{{{ end }}}

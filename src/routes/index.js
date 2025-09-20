@@ -39,6 +39,9 @@ _mounts.main = (app, middleware, controllers) => {
 	setupPageRoute(app, '/reset/:code?', [middleware.delayLoading], controllers.reset);
 	setupPageRoute(app, '/tos', [], controllers.termsOfUse);
 
+	// Unanswered page: admin only
+	setupPageRoute(app, '/unanswered', [middleware.ensureLoggedIn, middleware.admin.checkPrivileges], controllers.unanswered);
+
 	setupPageRoute(app, '/email/unsubscribe/:token', [], controllers.accounts.settings.unsubscribe);
 	app.post('/email/unsubscribe/:token', controllers.accounts.settings.unsubscribePost);
 

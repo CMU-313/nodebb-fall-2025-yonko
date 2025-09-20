@@ -43,6 +43,13 @@ Controllers.composer = require('./composer');
 
 Controllers.write = require('./write');
 
+// Unanswered page controller
+try {
+	Controllers.unanswered = require('./unanswered');
+} catch (e) {
+	// If the file isn't present or failed to load, ignore — dev/test environments may differ
+}
+
 Controllers.reset = async function (req, res) {
 	if (meta.config['password:disableEdit']) {
 		return helpers.notAllowed(req, res);

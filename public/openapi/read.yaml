@@ -226,6 +226,8 @@ paths:
     $ref: 'read/recent/posts/term.yaml'
   /api/unread:
     $ref: 'read/unread.yaml'
+  /api/unanswered:
+    $ref: 'read/unanswered.yaml'
   /api/unread/total:
     $ref: 'read/unread/total.yaml'
   "/api/topic/teaser/{topic_id}":

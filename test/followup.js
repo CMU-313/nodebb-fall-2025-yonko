@@ -1,87 +1,129 @@
 /**
- * Follow-up feature: data-layer behavior & hygiene tests
- *
- * Verifies lazy defaults, persistence of flat fields, nested read shape,
- * and that fetch-all responses don't leak backing keys.
+ * Follow-up feature: end-to-end data & API behavior
  */
 
 'use strict';
 
 const assert = require('assert');
+const nconf = require('nconf');
 
 const categories = require('../src/categories');
 const topics = require('../src/topics');
 const User = require('../src/user');
+const request = require('../src/request');
 
-describe('Follow-up state (data layer)', () => {
+describe('Follow-up feature (topics)', () => {
 	let adminUid;
 	let category;
-	let created;
+	let created; // { topicData, postData }
+	let tid; // number
+	let slug; // string
 
 	before(async () => {
-		// Create a poster and a category to host topics
+		// Create a user & category
 		adminUid = await User.create({ username: 'followup-admin' });
 		category = await categories.create({ name: 'Followup Tests' });
 
-		// Create a basic topic we can mutate
+		// Create a topic we can mutate
 		created = await topics.post({
 			uid: adminUid,
 			cid: category.cid,
 			title: 'Followup test topic',
 			content: 'main post',
 		});
+		tid = created.topicData.tid;
+		slug = created.topicData.slug;
 	});
 
 	it('defaults: getFollowup returns lazy defaults on a fresh topic', async () => {
-		const f = await topics.data.getFollowup(created.topicData.tid);
+		// Ensures missing fields don’t break reads and default safely
+		const f = await topics.getFollowup(tid);
 		assert.deepStrictEqual(f, { pending: false, requestedBy: 0, lastPingAt: 0 });
 	});
 
-	it('setFollowup persists partial patches and getFollowup returns nested shape', async () => {
-		// set only pending + requestedBy first
-		await topics.data.setFollowup(created.topicData.tid, { pending: true, requestedBy: adminUid });
-		let f = await topics.data.getFollowup(created.topicData.tid);
+	it('partial persistence: setFollowup patches fields and getFollowup returns nested shape', async () => {
+		// Set only pending + requestedBy
+		await topics.setFollowup(tid, { pending: true, requestedBy: adminUid });
+		let f = await topics.getFollowup(tid);
 		assert.deepStrictEqual(f, { pending: true, requestedBy: adminUid, lastPingAt: 0 });
 
-		// now set lastPingAt and clear pending
+		// Now set lastPingAt and clear pending
 		const ts = Date.now();
-		await topics.data.setFollowup(created.topicData.tid, { pending: false, lastPingAt: ts });
-		f = await topics.data.getFollowup(created.topicData.tid);
+		await topics.setFollowup(tid, { pending: false, lastPingAt: ts });
+		f = await topics.getFollowup(tid);
 		assert.deepStrictEqual(f, { pending: false, requestedBy: adminUid, lastPingAt: ts });
 	});
 
-	it('fetch-all hygiene: getTopicData does NOT expose flat backing fields or nested followup by default', async () => {
-		const t = await topics.data.getTopicData(created.topicData.tid);
-		// No nested followup unless explicitly requested
+	it('fetch-all hygiene: getTopicData does NOT expose flat fields or nested followup by default', async () => {
+		// "fetch-all" keeps legacy schemas stable
+		const t = await topics.getTopicData(tid);
+
+		// No nested object unless explicitly requested
 		assert.strictEqual(Object.prototype.hasOwnProperty.call(t, 'followup'), false);
-		// No flat backing fields should leak in fetch-all
-		['followupPending', 'followupRequestedBy', 'followupLastPingAt'].forEach(k => {
-			assert.strictEqual(Object.prototype.hasOwnProperty.call(t, k), false, `unexpected key leaked: ${k}`);
+
+		// No flat DB backing fields should leak
+		['followupPending', 'followupRequestedBy', 'followupLastPingAt'].forEach((k) => {
+			assert.strictEqual(
+				Object.prototype.hasOwnProperty.call(t, k),
+				false,
+				`unexpected key leaked: ${k}`
+			);
 		});
 	});
 
 	it('explicit field request: requesting "followup" returns nested shape and still hides flat fields', async () => {
-		const t = await topics.data.getTopicFields(created.topicData.tid, ['followup', 'tid', 'uid']);
-		// Nested object present
+		// Ask specifically for the nested view
+		const t = await topics.getTopicFields(tid, ['followup', 'tid', 'uid']);
+
+		// Nested object present with the exact 3 keys
 		assert.strictEqual(typeof t.followup, 'object');
-		assert.deepStrictEqual(['pending', 'requestedBy', 'lastPingAt'].sort(), Object.keys(t.followup).sort());
+		assert.deepStrictEqual(
+			Object.keys(t.followup).sort(),
+			['pending', 'requestedBy', 'lastPingAt'].sort()
+		);
+
 		// Backing fields hidden
-		['followupPending', 'followupRequestedBy', 'followupLastPingAt'].forEach(k => {
-			assert.strictEqual(Object.prototype.hasOwnProperty.call(t, k), false, `unexpected key leaked: ${k}`);
+		['followupPending', 'followupRequestedBy', 'followupLastPingAt'].forEach((k) => {
+			assert.strictEqual(
+				Object.prototype.hasOwnProperty.call(t, k),
+				false,
+				`unexpected key leaked: ${k}`
+			);
 		});
-		// Sanity: tid/uid still there
+
+		// Sanity: core fields still available
 		assert.strictEqual(typeof t.tid, 'number');
 		assert.strictEqual(typeof t.uid, 'number');
 	});
 
-	it('persistence across reload: followup survives subsequent reads and selective field calls', async () => {
-		const tid = created.topicData.tid;
-		// Selective read that doesn't ask for followup should not expose it
-		const selective = await topics.data.getTopicFields(tid, ['tid', 'title']);
+	it('persistence across reads: selective calls don’t expose followup unless asked, then rebuild from flat', async () => {
+		// Selective read that doesn’t ask for followup -> not present
+		const selective = await topics.getTopicFields(tid, ['tid', 'title']);
 		assert.strictEqual(Object.prototype.hasOwnProperty.call(selective, 'followup'), false);
 
-		// Asking for followup later should rebuild nested view from flat storage
-		const withFollowup = await topics.data.getTopicFields(tid, ['followup']);
+		// Ask for followup later -> nested object appears, built from flat storage
+		const withFollowup = await topics.getTopicFields(tid, ['followup']);
 		assert.strictEqual(typeof withFollowup.followup, 'object');
+	});
+
+	it('API default: GET /api/topic/:slug omits followup and does not leak flat fields (back-compat)', async () => {
+		const { response, body } = await request.get(`${nconf.get('url')}/api/topic/${slug}`);
+		assert.strictEqual(response.statusCode, 200);
+		assert(body);
+
+		// Top-level topic payload is the response body itself in this route
+		const t = body;
+
+		// No nested followup by default in public API
+		assert.strictEqual(Object.prototype.hasOwnProperty.call(t, 'followup'), false);
+
+		// No flat DB backing fields leaked
+		['followupPending', 'followupRequestedBy', 'followupLastPingAt'].forEach((k) => {
+			assert.strictEqual(
+				Object.prototype.hasOwnProperty.call(t, k),
+				false,
+				`unexpected key leaked via API: ${k}`
+			);
+		});
 	});
 });

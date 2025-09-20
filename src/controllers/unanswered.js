@@ -13,10 +13,10 @@ module.exports = async function (req, res) {
 	const data = {
 		title: 'Unanswered',
 		breadcrumbs: helpers.buildBreadcrumbs([
-		{ text: '[[pages:unanswered]]' },
+			{ text: '[[pages:unanswered]]' },
 		]),
-	widgets: res.locals.widgets || {},
-	topics: [],
+		widgets: res.locals.widgets || {},
+		topics: [],
 	};
 
 	// pagination and pageCount so API responses match documented schema

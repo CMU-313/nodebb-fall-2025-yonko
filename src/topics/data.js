@@ -1,3 +1,9 @@
+/**
+ * Topics data layer: fetching & shaping topic objects
+ *
+ * Adds nested followup read shape with lazy defaults; keeps DB storage flat.
+ */
+
 'use strict';
 
 const validator = require('validator');
@@ -8,34 +14,53 @@ const utils = require('../utils');
 const translator = require('../translator');
 const plugins = require('../plugins');
 
+// Parses ints from DB on read, so API returns numbers not strings.
 const intFields = [
 	'tid', 'cid', 'uid', 'mainPid', 'postcount',
 	'viewcount', 'postercount', 'followercount',
 	'deleted', 'locked', 'pinned', 'pinExpiry',
 	'timestamp', 'upvotes', 'downvotes',
 	'lastposttime', 'deleterUid',
+	'followupPending', 'followupRequestedBy', 'followupLastPingAt',
 ];
 
 module.exports = function (Topics) {
+	/**
+	 * Fetches fields for multiple topics and normalizes/augments them.
+	 * Preserves "fetch all" when `fields` is empty; only augments when selective.
+	 */
 	Topics.getTopicsFields = async function (tids, fields) {
 		if (!Array.isArray(tids) || !tids.length) {
 			return [];
 		}
 
-		// "scheduled" is derived from "timestamp"
-		if (fields.includes('scheduled') && !fields.includes('timestamp')) {
-			fields.push('timestamp');
+		// Treat empty array as "fetch all fields"
+		const fetchAll = !fields || fields.length === 0;
+		const effectiveFields = fetchAll ? [] : fields.slice(); // do NOT mutate caller's array
+
+		// "scheduled" is derived from "timestamp" (only augment when selective)
+		if (!fetchAll && effectiveFields.includes('scheduled') && !effectiveFields.includes('timestamp')) {
+			effectiveFields.push('timestamp');
+		}
+
+		// If explicitly asking for 'followup' (and not fetching all), include backing fields
+		if (!fetchAll && effectiveFields.includes('followup')) {
+			['followupPending', 'followupRequestedBy', 'followupLastPingAt'].forEach((f) => {
+				if (!effectiveFields.includes(f)) effectiveFields.push(f);
+			});
 		}
 
 		const keys = tids.map(tid => `topic:${tid}`);
-		const topics = await db.getObjects(keys, fields);
+		const topics = await db.getObjects(keys, effectiveFields);
+
 		const result = await plugins.hooks.fire('filter:topic.getFields', {
-			tids: tids,
-			topics: topics,
-			fields: fields,
-			keys: keys,
+			tids,
+			topics,
+			fields: effectiveFields,
+			keys,
 		});
-		result.topics.forEach(topic => modifyTopic(topic, fields));
+		// Normalize & decorate topic objects
+		result.topics.forEach(topic => modifyTopic(topic, effectiveFields));
 		return result.topics;
 	};
 
@@ -78,6 +103,34 @@ module.exports = function (Topics) {
 	Topics.deleteTopicFields = async function (tid, fields) {
 		await db.deleteObjectFields(`topic:${tid}`, fields);
 	};
+
+	/**
+	 * getFollowup(tid) -> { pending, requestedBy, lastPingAt }
+	 * Reads the nested followup shape (with lazy defaults); triggers read-path builder.
+	 */
+	Topics.getFollowup = async function (tid) {
+		// Requesting 'followup' ensures backing fields load & nested shape is built
+		const t = await Topics.getTopicFields(tid, ['followup']);
+		return t && t.followup ? t.followup : { pending: false, requestedBy: 0, lastPingAt: 0 };
+	};
+
+	/**
+	 * setFollowup(tid, patch) -> void
+	 * Persists followup fields (flat storage) from a partial patch; coerces types.
+	 */
+	Topics.setFollowup = async function (tid, { pending, requestedBy, lastPingAt }) {
+		const payload = {};
+		// Store boolean as 0/1 for DB consistency
+		if (typeof pending !== 'undefined') payload.followupPending = pending ? 1 : 0; // new flag
+		// Coerce uids/timestamps to integers with safe fallbacks
+		if (typeof requestedBy !== 'undefined') payload.followupRequestedBy = parseInt(requestedBy, 10) || 0;
+		if (typeof lastPingAt !== 'undefined') payload.followupLastPingAt = parseInt(lastPingAt, 10) || 0;
+
+		// Only write if something changed
+		if (Object.keys(payload).length) {
+			await db.setObject(`topic:${tid}`, payload); // flat, additive write
+		}
+	};
 };
 
 function escapeTitle(topicData) {
@@ -91,12 +144,15 @@ function escapeTitle(topicData) {
 	}
 }
 
+/**
+ * Normalizes a single topic object (types, derived fields, and presentation).
+ */
 function modifyTopic(topic, fields) {
 	if (!topic) {
-		return;
+		return; // gaurd
 	}
 
-	db.parseIntFields(topic, intFields, fields);
+	db.parseIntFields(topic, intFields, fields); // cast int fields
 
 	if (topic.hasOwnProperty('title')) {
 		topic.titleRaw = topic.title;
@@ -139,5 +195,27 @@ function modifyTopic(topic, fields) {
 				class: escaped.replace(/\s/g, '-'),
 			};
 		});
+	}
+
+	// FOLLOWUP: expose nested only when explicitly requested
+	const fetchAll = !fields || fields.length === 0; // "fetch all" mode
+	const wantsFollowup = Array.isArray(fields) && fields.includes('followup');
+	if (wantsFollowup) {
+		// Coerce/normalize flat values; default if missing
+		const pendingRaw = topic.followupPending;
+		const pending = pendingRaw === 1 || pendingRaw === true || pendingRaw === '1';
+		const requestedBy = Number.isInteger(topic.followupRequestedBy) ? topic.followupRequestedBy : 0;
+		const lastPingAt = Number.isInteger(topic.followupLastPingAt) ? topic.followupLastPingAt : 0;
+
+		topic.followup = { pending, requestedBy, lastPingAt };
+		// Hide flat storage fields when we expose nested shape
+		delete topic.followupPending;
+		delete topic.followupRequestedBy;
+		delete topic.followupLastPingAt;
+	} else if (fetchAll) {
+		// In fetch-all responses, hide backing fields to preserve old schemas
+		delete topic.followupPending;
+		delete topic.followupRequestedBy;
+		delete topic.followupLastPingAt;
 	}
 }

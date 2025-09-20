@@ -52,6 +52,12 @@ topicsAPI.get = async function (caller, data) {
 		return null;
 	}
 
+	// Attach nested followup; keeps lists untouched elsewhere
+	const f = await topics.getTopicFields(data.tid, ['followup']); // only asks for followup
+	if (f && f.followup) {
+		topic.followup = f.followup; // add nested followup to the single-topic response
+	}
+
 	return topic;
 };
 

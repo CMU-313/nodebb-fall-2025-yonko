@@ -15,6 +15,15 @@ define('sort', ['components'], function (components) {
 			.off('click', '[component="thread/sort"] a[data-sort]')
 			.on('click', '[component="thread/sort"] a[data-sort]', function () {
 				const newSetting = $(this).attr('data-sort');
+				// If the new 'No Replies' sort option is selected, keep this front-end-only
+				// and just log the action to the console as requested. Real filtering or
+				// server-side changes are out of scope for this change.
+				if (newSetting === 'no_replies') {
+					console.log('No Replies selected');
+					// Close dropdown if applicable and prevent navigation
+					$(this).closest('.dropdown-menu').prev('[data-bs-toggle="dropdown"]').dropdown && $(this).closest('.dropdown-menu').prev('[data-bs-toggle="dropdown"]').dropdown('hide');
+					return false;
+				}
 				const urlParams = utils.params();
 				urlParams.sort = newSetting;
 				const qs = $.param(urlParams);

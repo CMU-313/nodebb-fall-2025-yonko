@@ -1,0 +1,175 @@
+get:
+  tags:
+    - topics
+  summary: Get unanswered topics
+  description: Returns a paginated list of topics with no replies.
+  operationId: getUnansweredTopics
+  parameters:
+    - in: query
+      name: start
+      description: Zero-based start index for pagination.
+      required: false
+      schema:
+        type: integer
+        format: int32
+        minimum: 0
+        default: 0
+      example: 0
+    - in: query
+      name: count
+      description: Number of topics to return.
+      required: false
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+        maximum: 100
+        default: 50
+      example: 50
+  responses:
+    '200':
+      description: Successful response
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - topics
+              - nextStart
+            properties:
+              topics:
+                type: array
+                description: List of unanswered topics.
+                items:
+                  type: object
+                  description: Topic object (fields may vary by configuration).
+                  additionalProperties: true
+              nextStart:
+                type: integer
+                format: int32
+                description: Start index to use for the next page, or 0 if no more results.
+          example:
+            topics:
+              - tid: 1
+                uid: 1
+                cid: 2
+                mainPid: 1
+                title: "Welcome to your NodeBB!"
+                slug: "1/welcome-to-your-nodebb"
+                timestamp: 1757703959390
+                lastposttime: 1757703959391
+                postcount: 1
+                viewcount: 3
+                postercount: 1
+                followercount: 1
+                deleted: 0
+                locked: 0
+                pinned: 0
+                pinExpiry: 0
+                upvotes: 0
+                downvotes: 0
+                deleterUid: 0
+                titleRaw: "Welcome to your NodeBB!"
+                timestampISO: "2025-09-12T19:05:59.390Z"
+                scheduled: false
+                lastposttimeISO: "2025-09-12T19:05:59.391Z"
+                pinExpiryISO: ""
+                votes: 0
+                teaserPid: null
+                tags: []
+                thumbs: []
+                category:
+                  cid: 2
+                  name: "General Discussion"
+                  slug: "2/general-discussion"
+                  icon: "fa-comments-o"
+                  backgroundImage: ""
+                  imageClass: "cover"
+                  bgColor: "#59b3d0"
+                  color: "#ffffff"
+                  disabled: 0
+                user:
+                  uid: 1
+                  username: "admin"
+                  userslug: "admin"
+                  reputation: 0
+                  postcount: 7
+                  picture: null
+                  signature: null
+                  banned: false
+                  status: "offline"
+                  displayname: "admin"
+                  "icon:bgColor": "#673ab7"
+                  "icon:text": "A"
+                  banned_until_readable: "Not Banned"
+                  isLocal: true
+                teaser: null
+                isOwner: false
+                ignored: false
+                followed: false
+                unread: true
+                bookmark: null
+                unreplied: true
+                icons: []
+              - tid: 3
+                uid: 1
+                cid: 2
+                mainPid: 6
+                title: "another topic"
+                slug: "3/another-topic"
+                timestamp: 1758638089322
+                lastposttime: 1758638089322
+                postcount: 1
+                viewcount: 1
+                postercount: 1
+                followercount: 1
+                deleted: 0
+                locked: 0
+                pinned: 0
+                pinExpiry: 0
+                upvotes: 0
+                downvotes: 0
+                deleterUid: 0
+                titleRaw: "another topic"
+                timestampISO: "2025-09-23T14:34:49.322Z"
+                scheduled: false
+                lastposttimeISO: "2025-09-23T14:34:49.322Z"
+                pinExpiryISO: ""
+                votes: 0
+                teaserPid: null
+                tags: []
+                thumbs: []
+                category:
+                  cid: 2
+                  name: "General Discussion"
+                  slug: "2/general-discussion"
+                  icon: "fa-comments-o"
+                  backgroundImage: ""
+                  imageClass: "cover"
+                  bgColor: "#59b3d0"
+                  color: "#ffffff"
+                  disabled: 0
+                user:
+                  uid: 1
+                  username: "admin"
+                  userslug: "admin"
+                  reputation: 0
+                  postcount: 7
+                  picture: null
+                  signature: null
+                  banned: false
+                  status: "offline"
+                  displayname: "admin"
+                  "icon:bgColor": "#673ab7"
+                  "icon:text": "A"
+                  banned_until_readable: "Not Banned"
+                  isLocal: true
+                teaser: null
+                isOwner: false
+                ignored: false
+                followed: false
+                unread: true
+                bookmark: null
+                unreplied: true
+                icons: []
+            nextStart: 50

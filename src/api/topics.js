@@ -357,3 +357,8 @@ topicsAPI.move = async (caller, { tid, cid }) => {
 
 	await categories.onTopicsMoved(cids);
 };
+
+topicsAPI.getUnanswered = async function (caller, { cid, start = 0, stop }) {
+	// Delegate to domain layer; privilege filtering happens in Topics.getTopics
+	return await topics.getUnanswered(caller, { cid, start, stop });
+};

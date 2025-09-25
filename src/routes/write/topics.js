@@ -51,5 +51,9 @@ module.exports = function () {
 
 	setupApiRoute(router, 'put', '/:tid/move', [...middlewares, middleware.assert.topic], controllers.write.topics.move);
 
+	// Followup endpoints
+	setupApiRoute(router, 'post', '/:tid/followup/request', [...middlewares, middleware.assert.topic], controllers.write.topics.requestFollowup);
+	setupApiRoute(router, 'post', '/:tid/followup/resolve', [...middlewares, middleware.assert.topic], controllers.write.topics.resolveFollowup);
+
 	return router;
 };

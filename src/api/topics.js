@@ -9,6 +9,7 @@ const posts = require('../posts');
 const meta = require('../meta');
 const privileges = require('../privileges');
 const events = require('../events');
+const plugins = require('../plugins');
 const batch = require('../batch');
 const activitypub = require('../activitypub');
 
@@ -19,6 +20,7 @@ const { doTopicAction } = apiHelpers;
 
 const websockets = require('../socket.io');
 const socketHelpers = require('../socket.io/helpers');
+const followupGuard = require('../topics/followup-guard'); // <-- added
 
 const topicsAPI = module.exports;
 
@@ -188,6 +190,111 @@ topicsAPI.ignore = async function (caller, data) {
 
 topicsAPI.unfollow = async function (caller, data) {
 	await topics.unfollow(data.tid, caller.uid);
+};
+
+// New: request follow-up on a topic
+topicsAPI.requestFollowup = async function (caller, { tid }) {
+	if (!tid) {
+		throw new Error('[[error:invalid-data]]');
+	}
+	// 404 if topic doesn't exist
+	if (!await topics.exists(tid)) {
+		const err = new Error('[[error:no-topic]]');
+		err.status = 404;
+		throw err;
+	}
+
+	// Will throw 403 if no privilege, 429 if cooldown breached (as implemented in guard)
+	await followupGuard.assertCanRequestFollowup({ tid, uid: caller.uid });
+	await followupGuard.assertCooldownAndMark({ tid, uid: caller.uid });
+
+	const followup = {
+		pending: true,
+		requestedBy: caller.uid,
+		lastPingAt: Date.now(),
+	};
+
+	// Persist followup; try a few likely helpers for compatibility with the topics module
+	if (typeof topics.setFollowup === 'function') {
+		await topics.setFollowup(tid, followup);
+	} else if (typeof topics.updateTopicField === 'function') {
+		await topics.updateTopicField(tid, 'followup', followup);
+	} else {
+		// Fallback: generic update - adjust if your topics API uses a different name
+		await topics.update(tid, { followup });
+	}
+
+	// Emit NodeBB socket event and log
+	socketHelpers.emitToUids('event:followup:requested', { tid, followup }, [caller.uid]);
+	await events.log({ type: 'followup-request', uid: caller.uid, ip: caller.ip, tid });
+	// Topic-level event log (optional but useful for topic history)
+	if (topics && topics.events && typeof topics.events.log === 'function') {
+		try {
+			await topics.events.log(tid, { type: 'followup-request', uid: caller.uid });
+		} catch (err) {
+			// non-fatal
+		}
+	}
+	// Fire plugin action hook but don't let plugin failures block the API
+	try {
+		await plugins.hooks.fire('action:followup.requested', { tid, uid: caller.uid, followup });
+	} catch (err) {
+		// swallow plugin errors to avoid failing the request
+	}
+
+	return { followup: await topics.getFollowup(tid) };
+};
+
+// New: resolve follow-up on a topic
+topicsAPI.resolveFollowup = async function (caller, { tid }) {
+	if (!tid) {
+		throw new Error('[[error:invalid-data]]');
+	}
+	// 404 if topic doesn't exist
+	if (!await topics.exists(tid)) {
+		const err = new Error('[[error:no-topic]]');
+		err.status = 404;
+		throw err;
+	}
+
+	// Will throw 403 if caller lacks resolve privilege
+	await followupGuard.assertCanResolveFollowup({ tid, uid: caller.uid });
+
+	const followup = {
+		pending: false,
+		requestedBy: 0,
+		lastPingAt: 0,
+	};
+
+	// Persist followup (same compatibility strategy)
+	if (typeof topics.setFollowup === 'function') {
+		await topics.setFollowup(tid, followup);
+	} else if (typeof topics.updateTopicField === 'function') {
+		await topics.updateTopicField(tid, 'followup', followup);
+	} else {
+		// Fallback: generic update - adjust if your topics API uses a different name
+		await topics.update(tid, { followup });
+	}
+
+	// Emit NodeBB socket event and log
+	socketHelpers.emitToUids('event:followup:resolved', { tid, followup }, [caller.uid]);
+	await events.log({ type: 'followup-resolve', uid: caller.uid, ip: caller.ip, tid });
+	// Topic-level event log
+	if (topics && topics.events && typeof topics.events.log === 'function') {
+		try {
+			await topics.events.log(tid, { type: 'followup-resolve', uid: caller.uid });
+		} catch (err) {
+			// non-fatal
+		}
+	}
+	// Fire plugin action hook
+	try {
+		await plugins.hooks.fire('action:followup.resolved', { tid, uid: caller.uid, followup });
+	} catch (err) {
+		// non-fatal
+	}
+
+	return { followup: await topics.getFollowup(tid) };
 };
 
 topicsAPI.updateTags = async (caller, { tid, tags }) => {

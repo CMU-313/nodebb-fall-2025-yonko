@@ -150,6 +150,10 @@ paths:
     $ref: 'write/topics/tid/pin.yaml'
   /topics/{tid}/follow:
     $ref: 'write/topics/tid/follow.yaml'
+  /topics/{tid}/followup/request:
+    $ref: 'write/topics/tid/followup-request.yaml'
+  /topics/{tid}/followup/resolve:
+    $ref: 'write/topics/tid/followup-resolve.yaml'
   /topics/{tid}/ignore:
     $ref: 'write/topics/tid/ignore.yaml'
   /topics/{tid}/tags:

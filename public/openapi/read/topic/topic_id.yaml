@@ -111,6 +111,9 @@ get:
                       description: HTML that is rendered by the theme
                   privileges:
                     type: object
+                    description: Map of privilege flags; may expand over time
+                    additionalProperties:
+                      type: boolean
                     properties:
                       topics:reply:
                         type: boolean
@@ -157,6 +160,10 @@ get:
                       uid:
                         type: number
                         description: A user identifier
+                      topics:followup:
+                        type: boolean
+                      topics:resolveFollowup:
+                        type: boolean
                   topicStaleDays:
                     type: number
                   reputation:disabled:

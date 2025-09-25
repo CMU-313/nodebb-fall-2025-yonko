@@ -1,5 +1,10 @@
-
 'use strict';
+
+/**
+ * Privileges: topic-level checks (reply, tag, schedule, follow-up, etc.)
+ * 
+ * This module resolves per-category permissions for a given tid/uid.
+ */
 
 const _ = require('lodash');
 
@@ -17,13 +22,19 @@ const privsTopics = module.exports;
 privsTopics.get = async function (tid, uid) {
 	uid = parseInt(uid, 10);
 
+	// Topic privileges in standard set
 	const privs = [
 		'topics:reply', 'topics:read', 'topics:schedule', 'topics:tag',
 		'topics:delete', 'posts:edit', 'posts:history',
 		'posts:upvote', 'posts:downvote',
 		'posts:delete', 'posts:view_deleted', 'read', 'purge',
+		'topics:followup', 'topics:resolveFollowup', // follow-up guardrails
 	];
+
+	// Minimal topic fields used for privilege evaluation
 	const topicData = await topics.getTopicFields(tid, ['cid', 'uid', 'locked', 'deleted', 'scheduled']);
+
+	// Resolve category-scoped allows, plus admin/mod state, and any plugin thread tools
 	const [userPrivileges, isAdministrator, isModerator, disabled, topicTools] = await Promise.all([
 		helpers.isAllowedTo(privs, uid, topicData.cid),
 		user.isAdministrator(uid),
@@ -35,6 +46,7 @@ privsTopics.get = async function (tid, uid) {
 			tools: [],
 		}),
 	]);
+
 	const privData = _.zipObject(privs, userPrivileges);
 	const isOwner = uid > 0 && uid === topicData.uid;
 	const isAdminOrMod = isAdministrator || isModerator;
@@ -43,6 +55,7 @@ privsTopics.get = async function (tid, uid) {
 	const mayReply = privsTopics.canViewDeletedScheduled(topicData, {}, false, privData['topics:schedule']);
 	const hasTools = topicTools.tools.length > 0;
 
+	// Return a stable privilege map (with follow-up booleans)
 	return await plugins.hooks.fire('filter:privileges.topics.get', {
 		'topics:reply': (privData['topics:reply'] && ((!topicData.locked && mayReply) || isModerator)) || isAdministrator,
 		'topics:read': privData['topics:read'] || isAdministrator,
@@ -58,6 +71,10 @@ privsTopics.get = async function (tid, uid) {
 		read: privData.read || isAdministrator,
 		purge: (privData.purge && (isOwner || isModerator)) || isAdministrator,
 
+		// expose follow-up permissions to callers (UI & API)
+		'topics:followup': privData['topics:followup'] || isAdministrator,
+		'topics:resolveFollowup': privData['topics:resolveFollowup'] || isAdministrator || isModerator,
+
 		view_thread_tools: editable || deletable || hasTools,
 		editable: editable,
 		deletable: deletable,
@@ -70,6 +87,7 @@ privsTopics.get = async function (tid, uid) {
 	});
 };
 
+// Category-scoped lookup helper
 privsTopics.can = async function (privilege, tid, uid) {
 	const cid = await topics.getTopicField(tid, 'cid');
 	return await privsCategories.can(privilege, cid, uid);

@@ -368,3 +368,5 @@ paths:
     $ref: 'read/ap.yaml'
   /api/outgoing:
     $ref: 'read/outgoing.yaml'
+  /api/topic/unanswered:
+    $ref: 'read/topic/unanswered.yaml'

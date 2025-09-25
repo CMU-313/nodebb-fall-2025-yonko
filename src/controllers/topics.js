@@ -14,6 +14,7 @@ const helpers = require('./helpers');
 const pagination = require('../pagination');
 const utils = require('../utils');
 const analytics = require('../analytics');
+const topicsAPI = require('../api/topics');
 
 const topicsController = module.exports;
 
@@ -409,4 +410,20 @@ topicsController.pagination = async function (req, res, next) {
 	});
 
 	res.json({ pagination: paginationData });
+};
+
+topicsController.getUnanswered = async function (req, res) {
+	// Optional filters/pagination
+	const cid = utils.isNumber(req.query.cid) ? parseInt(req.query.cid, 10) : undefined;
+	const start = utils.isNumber(req.query.start) ? parseInt(req.query.start, 10) : 0;
+
+	let stop;
+	if (utils.isNumber(req.query.stop)) {
+		stop = parseInt(req.query.stop, 10);
+	} else if (utils.isNumber(req.query.count)) {
+		stop = start + (parseInt(req.query.count, 10) - 1);
+	}
+
+	const result = await topicsAPI.getUnanswered(req, { cid, start, stop });
+	res.json(result);
 };

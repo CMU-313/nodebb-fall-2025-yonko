@@ -66,11 +66,13 @@ module.exports = function (Categories) {
 			'groups:posts:upvote',
 			'groups:posts:downvote',
 			'groups:topics:delete',
+			'groups:topics:followup', // Students (registered-users) can request follow-ups by default
 		];
 		const modPrivileges = defaultPrivileges.concat([
 			'groups:topics:schedule',
 			'groups:posts:view_deleted',
 			'groups:purge',
+			'groups:topics:resolveFollowup', // Staff (admins & global mods) can resolve follow-ups by default
 		]);
 		const guestPrivileges = ['groups:find', 'groups:read', 'groups:topics:read'];
 

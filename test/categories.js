@@ -740,7 +740,7 @@ describe('Categories', () => {
 					'groups:purge': false,
 					'groups:posts:view_deleted': false,
 					'groups:moderate': false,
-					'groups:topics:followup': false,
+					'groups:topics:followup': true,
 					'groups:topics:resolveFollowup': false,
 				});
 

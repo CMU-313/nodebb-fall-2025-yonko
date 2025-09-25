@@ -1,0 +1,26 @@
+'use strict';
+
+/**
+ * Grants sensible defaults for the new follow-up privileges across all existing categories:
+ * 
+ * Global Moderators => topics:resolveFollowup (this script)
+ *
+ * Run via: ./nodebb upgrade
+ */
+
+module.exports = {
+	name: 'followup_default_privileges_v2',
+	timestamp: Date.UTC(2025, 9, 25, 0, 1), // any stable, increasing timestamp
+	method: async function () {
+		const categories = require('../../categories');
+		const privileges = require('../../privileges');
+
+		let cids = await categories.getAllCidsFromSet('categories:cid');
+		cids = (cids || []).map(Number).filter(Boolean);
+		if (!cids.length) return;
+
+		// Staff: Global Moderators can resolve follow-ups
+		await Promise.all(cids.map(cid =>
+			privileges.categories.give(['groups:topics:resolveFollowup'], cid, 'Global Moderators')));
+	},
+};

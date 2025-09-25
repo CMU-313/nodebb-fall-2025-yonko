@@ -685,6 +685,8 @@ describe('Categories', () => {
 					purge: false,
 					'posts:view_deleted': false,
 					moderate: false,
+					'topics:followup': false,
+					'topics:resolveFollowup': false,
 				});
 
 				done();
@@ -738,6 +740,8 @@ describe('Categories', () => {
 					'groups:purge': false,
 					'groups:posts:view_deleted': false,
 					'groups:moderate': false,
+					'groups:topics:followup': false,
+					'groups:topics:resolveFollowup': false,
 				});
 
 				done();

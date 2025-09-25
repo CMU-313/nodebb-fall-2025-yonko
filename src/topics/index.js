@@ -230,6 +230,27 @@ Topics.getTopicWithPosts = async function (topicData, set, uid, start, stop, rev
 	return result.topic;
 };
 
+Topics.getUnanswered = async function (caller, { cid, start = 0, stop }) {
+	// default to 50 items if stop not provided
+	const effectiveStop = utils.isNumber(stop) ? parseInt(stop, 10) : (start + 49);
+
+	// Use category-scoped zset if cid is provided, else global
+	const set = cid ? `cid:${cid}:tids:posts` : 'topics:posts';
+
+	// Fetch topics whose postcount score is exactly 1 (main post only => 0 replies)
+	// db.getSortedSetRangeByScore(key, start, stop, min, max)
+	let tids = await db.getSortedSetRangeByScore(set, start, effectiveStop, 1, 1);
+	tids = tids.filter(Boolean);
+
+	// Returns only viewable topics for caller.uid
+	const topicsList = await Topics.getTopics(tids, { uid: caller.uid });
+
+	return {
+		topics: topicsList,
+		nextStart: effectiveStop + 1,
+	};
+};
+
 function mergeConsecutiveShareEvents(arr) {
 	return arr.reduce((acc, curr) => {
 		const last = acc[acc.length - 1];

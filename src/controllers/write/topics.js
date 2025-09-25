@@ -220,3 +220,14 @@ Topics.move = async (req, res) => {
 
 	helpers.formatApiResponse(200, res);
 };
+
+// Backend logic that calls my functions that I made in topics.js in src/api
+Topics.requestFollowup = async (req, res) => {
+	const payload = await api.topics.requestFollowup(req, { tid: req.params.tid });
+	helpers.formatApiResponse(200, res, payload);
+};
+
+Topics.resolveFollowup = async (req, res) => {
+	const payload = await api.topics.resolveFollowup(req, { tid: req.params.tid });
+	helpers.formatApiResponse(200, res, payload);
+};

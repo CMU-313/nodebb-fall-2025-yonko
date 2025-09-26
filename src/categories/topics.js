@@ -43,6 +43,24 @@ module.exports = function (Categories) {
 			return pinnedTidsOnPage;
 		}
 
+		// Special-case: if buildTopicsSortedSet returned the NO_REPLIES then do this
+		if (Array.isArray(set) === false && set === 'NO_REPLIES') {
+			// Restrict 'no_replies' results to admins/mods
+			const isAdminOrMod = await privileges.categories.isAdminOrMod(data.cid, data.uid);
+			if (!isAdminOrMod) {
+				// Non-admins get only the pinned tids for the page.
+				return pinnedTidsOnPage;
+			}
+			const start = data.start - Math.max(0, totalPinnedCount - pinnedCountOnPage);
+			const stop = data.stop === -1 ? data.stop : start + normalTidsToGet - 1;
+			const caller = { uid: data.uid };
+			const params = { cid: data.cid, start: Math.max(0, start), stop };
+			const unanswered = await topics.getUnanswered(caller, params);
+			let normalTids = (unanswered && unanswered.topics) ? unanswered.topics.map(t => t.tid) : [];
+			normalTids = normalTids.filter(tid => !pinnedTids.includes(tid));
+			return pinnedTidsOnPage.concat(normalTids.slice(0, normalTidsToGet));
+		}
+
 		if (plugins.hooks.hasListeners('filter:categories.getTopicIds')) {
 			const result = await plugins.hooks.fire('filter:categories.getTopicIds', {
 				tids: [],
@@ -98,10 +116,16 @@ module.exports = function (Categories) {
 			most_posts: `cid:${cid}:tids:posts`,
 			most_votes: `cid:${cid}:tids:votes`,
 			most_views: `cid:${cid}:tids:views`,
+			no_replies: 'NO_REPLIES',
 		};
 
 		const mainSet = sortToSet.hasOwnProperty(sort) ? sortToSet[sort] : `cid:${cid}:tids`;
 		const set = new Set([mainSet]);
+
+		// If the caller requested 'no_replies' we return no replies for above
+		if (mainSet === 'NO_REPLIES') {
+			return 'NO_REPLIES';
+		}
 
 		if (data.tag) {
 			if (Array.isArray(data.tag)) {

@@ -12,10 +12,12 @@
 			</a>
 		</li>
 			<li>
+				{{{ if privileges.isAdminOrMod }}}
 				<a class="dropdown-item rounded-1 d-flex align-items-center gap-2" href="#" data-sort="no_replies" role="menuitem">
 					<span class="flex-grow-1">No Replies</span>
 					<i class="flex-shrink-0 fa fa-fw text-secondary"></i>
 				</a>
+				{{{ end }}}
 			</li>
 
 		<li>

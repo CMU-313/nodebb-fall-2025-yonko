@@ -23,6 +23,9 @@ const url = nconf.get('url');
 const relative_path = nconf.get('relative_path');
 const validSorts = [
 	'recently_replied', 'recently_created', 'most_posts', 'most_votes', 'most_views',
+	// Allow server-side rendering to accept the 'no_replies' sort so the initial
+	// category page respects the frontend 'No Replies' selection.
+	'no_replies',
 ];
 
 categoryController.get = async function (req, res, next) {
@@ -149,7 +152,14 @@ categoryController.get = async function (req, res, next) {
 	categoryData.topicIndex = topicIndex;
 	categoryData.selectedTag = tagData.selectedTag;
 	categoryData.selectedTags = tagData.selectedTags;
-	categoryData.sortOptionLabel = `[[topic:${validator.escape(String(sort)).replace(/_/g, '-')}]]`;
+	// For the 'no_replies' sort we don't yet have a translation key in all
+	// language bundles in this workspace, so set a human-friendly label here
+	// to avoid showing the raw sort key in the UI.
+	if (sort === 'no_replies') {
+		categoryData.sortOptionLabel = 'No Replies';
+	} else {
+		categoryData.sortOptionLabel = `[[topic:${validator.escape(String(sort)).replace(/_/g, '-')}]]`;
+	}
 
 	if (!meta.config['feeds:disableRSS']) {
 		categoryData.rssFeedUrl = `${url}/category/${categoryData.cid}.rss`;

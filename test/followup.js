@@ -11,6 +11,10 @@ const categories = require('../src/categories');
 const topics = require('../src/topics');
 const User = require('../src/user');
 const request = require('../src/request');
+const topicsAPI = require('../src/api/topics');
+const groups = require('../src/groups');
+
+
 
 describe('Follow-up feature (topics)', () => {
 	let adminUid;
@@ -96,7 +100,7 @@ describe('Follow-up feature (topics)', () => {
 		assert.strictEqual(typeof t.uid, 'number');
 	});
 
-	it('persistence across reads: selective calls don’t expose followup unless asked, then rebuild from flat', async () => {
+	it('persistence across reads: selective calls don\'t expose followup unless asked, then rebuild from flat', async () => {
 		// Selective read that doesn’t ask for followup -> not present
 		const selective = await topics.getTopicFields(tid, ['tid', 'title']);
 		assert.strictEqual(Object.prototype.hasOwnProperty.call(selective, 'followup'), false);
@@ -125,5 +129,39 @@ describe('Follow-up feature (topics)', () => {
 				`unexpected key leaked via API: ${k}`
 			);
 		});
+	});
+});
+
+describe('requestFollowup / resolveFollowup (very simple test)', () => {
+	let adminUid;
+	let tid;
+
+	before(async () => {
+		adminUid = await User.create({ username: 'followup-api-admin' });
+		await groups.join('administrators', adminUid); // ensure resolve privilege
+		const cat = await categories.create({ name: 'Followup API Cat' });
+		const created = await topics.post({
+			uid: adminUid,
+			cid: cat.cid,
+			title: 'Followup API topic',
+			content: 'content!!',
+		});
+		tid = created.topicData.tid;
+	});
+
+	it('should request followup', async () => {
+		const caller = { uid: adminUid, ip: '127.0.0.1' };
+		const res = await topicsAPI.requestFollowup(caller, { tid });
+		assert.strictEqual(res.followup.pending, true);
+		assert.strictEqual(res.followup.requestedBy, adminUid);
+		assert.ok(res.followup.lastPingAt > 0);
+	});
+
+	it('should resolve followup', async () => {
+		const caller = { uid: adminUid, ip: '127.0.0.1' };
+		const res = await topicsAPI.resolveFollowup(caller, { tid });
+		assert.strictEqual(res.followup.pending, false);
+		assert.strictEqual(res.followup.requestedBy, 0);
+		assert.strictEqual(res.followup.lastPingAt, 0);
 	});
 });

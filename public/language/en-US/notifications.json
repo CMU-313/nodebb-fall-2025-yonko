@@ -101,5 +101,9 @@
     "activitypub.announce": "<strong>%1</strong> shared your post in <strong>%2</strong> to their followers.",
     "activitypub.announce-dual": "<strong>%1</strong> and <strong>%2</strong> shared your post in <strong>%3</strong> to their followers.",
     "activitypub.announce-triple": "<strong>%1</strong>, <strong>%2</strong> and <strong>%3</strong> shared your post in <strong>%4</strong> to their followers.",
-    "activitypub.announce-multiple": "<strong>%1</strong>, <strong>%2</strong> and %3 others shared your post in <strong>%4</strong> to their followers."
+    "activitypub.announce-multiple": "<strong>%1</strong>, <strong>%2</strong> and %3 others shared your post in <strong>%4</strong> to their followers.",
+    "followup-requested-staff": "%1 requested a follow-up on %2",
+    "followup-requested-owner": "%1 requested a follow-up on your topic %2",
+    "followup-resolved": "Your follow-up request on %1 was resolved",
+    "followup-requested-staff-cta": "View Topic"
 }

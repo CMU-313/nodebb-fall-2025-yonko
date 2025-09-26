@@ -13,6 +13,11 @@ const batch = require('../batch');
 const plugins = require('../plugins');
 const activitypub = require('../activitypub');
 
+// NEW requires for notifications
+const notifications = require('../notifications');
+const translator = require('../translator');
+// const nconf = require('nconf');
+
 const activitypubApi = require('./activitypub');
 const apiHelpers = require('./helpers');
 
@@ -220,7 +225,6 @@ topicsAPI.requestFollowup = async function (caller, { tid }) {
 	} else if (typeof topics.updateTopicField === 'function') {
 		await topics.updateTopicField(tid, 'followup', followup);
 	} else {
-		// Fallback: generic update - adjust if your topics API uses a different name
 		await topics.update(tid, { followup });
 	}
 
@@ -242,6 +246,36 @@ topicsAPI.requestFollowup = async function (caller, { tid }) {
 		// swallow plugin errors to avoid failing the request
 	}
 
+	try {
+		// Notification logic (non-fatal if it fails)
+		const topicFields = await topics.getTopicFields(tid, ['title', 'slug', 'uid']);
+		const topicTitle = topicFields.title || '[[topic:topic]]';
+		const requesterName = caller.displayname || caller.username || `uid:${caller.uid}`;
+		const staffGroup = meta.config['followup:staffGroup'] || 'administrators';
+		const bodyShort = await translator.compile('notifications:followup-requested-staff', requesterName, topicTitle);
+		const path = `/topic/${tid}`;
+		const notif = await notifications.create({
+			type: 'followup:requested',
+			bodyShort,
+			path,
+			mergeId: `notifications:followup-requested|${tid}`,
+		});
+		await notifications.pushGroup(notif, staffGroup);
+
+		// Optional notify topic owner (config flag; default on)
+		// if (meta.config['followup:notifyOwner'] !== '0' && topicFields.uid && topicFields.uid !== caller.uid) {
+		// Uses existing helper (will respect recipient preferences downstream)
+		// socketHelpers.sendNotificationToTopicOwner(tid, caller.uid, 'followup.requested', 
+		// 'notifications:followup-requested-owner');
+		// }
+		// Always ensure administrators also receive it (even if a custom staffGroup is configured)
+		if (staffGroup !== 'administrators') {
+			await notifications.pushGroup(notif, 'administrators');
+		}
+	} catch (err) {
+		// Swallow to avoid breaking API response
+	}
+
 	return { followup: await topics.getFollowup(tid) };
 };
 
@@ -260,19 +294,26 @@ topicsAPI.resolveFollowup = async function (caller, { tid }) {
 	// Will throw 403 if caller lacks resolve privilege
 	await followupGuard.assertCanResolveFollowup({ tid, uid: caller.uid });
 
+	// Capture current followup before clearing (needed for notification)
+	let previousFollowup;
+	try {
+		previousFollowup = await topics.getFollowup(tid);
+	} catch (e) {
+		previousFollowup = null;
+	}
+
 	const followup = {
 		pending: false,
 		requestedBy: 0,
 		lastPingAt: 0,
 	};
 
-	// Persist followup (same compatibility strategy)
+	// Persist followup
 	if (typeof topics.setFollowup === 'function') {
 		await topics.setFollowup(tid, followup);
 	} else if (typeof topics.updateTopicField === 'function') {
 		await topics.updateTopicField(tid, 'followup', followup);
 	} else {
-		// Fallback: generic update - adjust if your topics API uses a different name
 		await topics.update(tid, { followup });
 	}
 
@@ -292,6 +333,26 @@ topicsAPI.resolveFollowup = async function (caller, { tid }) {
 		await plugins.hooks.fire('action:followup.resolved', { tid, uid: caller.uid, followup });
 	} catch (err) {
 		// non-fatal
+	}
+
+	// Notification to original requester
+	try {
+		const requestedBy = previousFollowup && previousFollowup.requestedBy;
+		if (requestedBy && requestedBy > 0 && requestedBy !== caller.uid) {
+			const topicFields = await topics.getTopicFields(tid, ['title', 'slug']);
+			const topicTitle = topicFields.title || '[[topic:topic]]';
+			const bodyShort = await translator.compile('notifications:followup-resolved', topicTitle);
+			const path = `/topic/${tid}`;
+			const notif = await notifications.create({
+				type: 'followup:resolved',
+				bodyShort,
+				path,
+				mergeId: `notifications:followup-resolved|${tid}|${requestedBy}`,
+			});
+			await notifications.push(notif, [requestedBy]);
+		}
+	} catch (err) {
+		// Non-fatal
 	}
 
 	return { followup: await topics.getFollowup(tid) };

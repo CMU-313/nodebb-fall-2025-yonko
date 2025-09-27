@@ -43,6 +43,13 @@
 						</a>
 					</div>
 
+					<div class="btn-group">
+						<button class="d-flex px-3 gap-2 align-items-center btn btn-sm btn-primary fw-semibold" type="button">
+							<i class="fa fa-fw fa-reply"></i>
+							<span class="text-truncate text-nowrap">Request Follow Up</span>
+						</button>
+					</div>
+
 					<a class="fw-bold text-nowrap text-truncate" href="{{{ if ./user.userslug }}}{config.relative_path}/user/{./user.userslug}{{{ else }}}#{{{ end }}}" data-username="{posts.user.username}" data-uid="{posts.user.uid}">{posts.user.displayname}</a>
 				</div>
 

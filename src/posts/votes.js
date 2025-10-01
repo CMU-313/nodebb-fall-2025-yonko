@@ -1,3 +1,11 @@
+/*
+ * Votes domain: handles upvote/downvote/unvote flows, reputation updates,
+ * post vote tallies, and fan-out to topic-level aggregates.
+ * 
+ * NOTE: We also keep "topic.score" in sync with the main post's net votes,
+ * and maintain a per-category sorted set for score-based sorting.
+ */
+
 'use strict';
 
 const meta = require('../meta');
@@ -245,52 +253,75 @@ module.exports = function (Posts) {
 		await Posts.updatePostVoteCount(postData);
 	}
 
+	/**
+	 * Persist post vote totals and fan out side-effects
+	 * - Triggers auto-flagging on heavy downvotes
+	 * - Updates topic-level aggregates and post fields
+	 * - Publishes a plugin action for observers
+	 */
 	Posts.updatePostVoteCount = async function (postData) {
 		if (!postData || !postData.pid || !postData.tid) {
-			return;
+			return; // guard: nothing to do without pid/tid
 		}
+
+		// If enabled, auto-flag posts that cross the downvote threshold
 		const threshold = meta.config['flags:autoFlagOnDownvoteThreshold'];
 		if (threshold && postData.votes <= (-threshold)) {
-			const adminUid = await user.getFirstAdminUid();
+			const adminUid = await user.getFirstAdminUid(); // pick a notifier
 			const reportMsg = await translator.translate(`[[flags:auto-flagged, ${-postData.votes}]]`);
-			const flagObj = await flags.create('post', postData.pid, adminUid, reportMsg, null, true);
-			await flags.notify(flagObj, adminUid, true);
+			const flagObj = await flags.create('post', postData.pid, adminUid, reportMsg, null, true); // silent flag
+			await flags.notify(flagObj, adminUid, true); // notify staff
 		}
+
 		await Promise.all([
-			updateTopicVoteCount(postData),
-			db.sortedSetAdd('posts:votes', postData.votes, postData.pid),
+			updateTopicVoteCount(postData), // propagate to topic + category indexes
+			db.sortedSetAdd('posts:votes', postData.votes, postData.pid), // keep global post-vote index fresh
 			Posts.setPostFields(postData.pid, {
-				upvotes: postData.upvotes,
-				downvotes: postData.downvotes,
+				upvotes: postData.upvotes, // persist upvote count
+				downvotes: postData.downvotes, // persist downvote count
 			}),
 		]);
-		plugins.hooks.fire('action:post.updatePostVoteCount', { post: postData });
+		plugins.hooks.fire('action:post.updatePostVoteCount', { post: postData }); // emit side-channel event
 	};
 
+	/**
+	 * Fan out a post's vote change into topic/category structures
+	 * - For non-main posts: update per-topic 'posts:votes' index only
+	 * - For main post: also sync topic up/down counts, topic.score, and score-based zsets
+	 */
 	async function updateTopicVoteCount(postData) {
-		const topicData = await topics.getTopicFields(postData.tid, ['mainPid', 'cid', 'pinned']);
+		const topicData = await topics.getTopicFields(postData.tid, ['mainPid', 'cid', 'pinned']); // minimal lookups
 
+		// Maintain per-user per-category 'voted posts' view
 		if (postData.uid) {
 			if (postData.votes !== 0) {
-				await db.sortedSetAdd(`cid:${topicData.cid}:uid:${postData.uid}:pids:votes`, postData.votes, postData.pid);
+				await db.sortedSetAdd(`cid:${topicData.cid}:uid:${postData.uid}:pids:votes`, postData.votes, postData.pid); // add/update
 			} else {
-				await db.sortedSetRemove(`cid:${topicData.cid}:uid:${postData.uid}:pids:votes`, postData.pid);
+				await db.sortedSetRemove(`cid:${topicData.cid}:uid:${postData.uid}:pids:votes`, postData.pid); // remove if neutral
 			}
 		}
 
+		// If this is not the main post, just update the topic's per-post vote index and return
 		if (String(topicData.mainPid) !== String(postData.pid)) {
-			return await db.sortedSetAdd(`tid:${postData.tid}:posts:votes`, postData.votes, postData.pid);
+			return await db.sortedSetAdd(`tid:${postData.tid}:posts:votes`, postData.votes, postData.pid); // per-topic post ranking
 		}
+
+		// Main post: this defines the topic's aggregate votes and derived score
 		const promises = [
 			topics.setTopicFields(postData.tid, {
-				upvotes: postData.upvotes,
-				downvotes: postData.downvotes,
+				upvotes: postData.upvotes, // mirror main-post upvotes on topic
+				downvotes: postData.downvotes, // mirror main-post downvotes on topic
+				score: postData.votes, // topic.score = net votes of main post
 			}),
-			db.sortedSetAdd('topics:votes', postData.votes, postData.tid),
+			db.sortedSetAdd('topics:votes', postData.votes, postData.tid), // global topic vote index (legacy)
+			db.sortedSetAdd(`cid:${topicData.cid}:tids:score`, postData.votes, postData.tid), // per-category score index
 		];
+
+		// Keep category vote index in sync for non-pinned topics (legacy)
 		if (!topicData.pinned) {
-			promises.push(db.sortedSetAdd(`cid:${topicData.cid}:tids:votes`, postData.votes, postData.tid));
+			promises.push(db.sortedSetAdd(`cid:${topicData.cid}:tids:votes`, postData.votes, postData.tid)); // category vote index
 		}
-		await Promise.all(promises);
+
+		await Promise.all(promises); // apply updates in parallel
 	}
 };

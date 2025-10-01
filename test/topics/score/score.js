@@ -13,13 +13,13 @@
 const assert = require('assert');
 const nconf = require('nconf');
 
-const db = require('../../src/database');
-const topics = require('../../src/topics');
-const posts = require('../../src/posts');
-const categories = require('../../src/categories');
-const user = require('../../src/user');
-const apiPosts = require('../../src/api/posts');
-const request = require('../../src/request');
+const db = require('../../../src/database');
+const topics = require('../../../src/topics');
+const posts = require('../../../src/posts');
+const categories = require('../../../src/categories');
+const user = require('../../../src/user');
+const apiPosts = require('../../../src/api/posts');
+const request = require('../../../src/request');
 
 describe('topics/score (topic-level score derived from main post votes)', () => {
 	let authorUid;

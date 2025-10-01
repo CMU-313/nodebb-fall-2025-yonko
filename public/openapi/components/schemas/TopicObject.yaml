@@ -256,6 +256,9 @@ TopicObjectSlim:
           type: number
         votes:
           type: number
+        score:
+          type: number
+          description: Net votes of the main post (upvotes minus downvotes).
         teaserPid:
           oneOf:
             - type: number

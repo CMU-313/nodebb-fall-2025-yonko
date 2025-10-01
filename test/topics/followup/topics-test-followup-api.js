@@ -11,18 +11,18 @@ function restoreAll(originals) {
 	}
 }
 
-describe('followup request contract', () => {
+describe('followup request contract (no extra deps)', () => {
 	let topicsAPI;
 	let topicsModule, guardModule, socketHelpers, pluginsModule, eventsModule;
 	let originals;
 
 	beforeEach(function () {
 		originals = [];
-		topicsModule = require('../src/topics');
-		guardModule = require('../src/topics/followup-guard');
-		socketHelpers = require('../src/socket.io/helpers');
-		pluginsModule = require('../src/plugins');
-		eventsModule = require('../src/events');
+		topicsModule = require('../../../src/topics');
+		guardModule = require('../../../src/topics/followup-guard');
+		socketHelpers = require('../../../src/socket.io/helpers');
+		pluginsModule = require('../../../src/plugins');
+		eventsModule = require('../../../src/events');
 
 		// stub topics methods
 		replace(topicsModule, 'exists', async () => true, originals);
@@ -48,8 +48,8 @@ describe('followup request contract', () => {
 		replace(eventsModule, 'log', async (data) => { eventsCalls.push(data); }, originals);
 
 		// require API after stubs (fresh require)
-		delete require.cache[require.resolve('../src/api/topics')];
-		topicsAPI = require('../src/api/topics');
+		delete require.cache[require.resolve('../../../src/api/topics')];
+		topicsAPI = require('../../../src/api/topics');
 
 		// attach helper refs to this scope for assertions
 		this._setFollowupCalls = setFollowupCalls;
@@ -60,7 +60,7 @@ describe('followup request contract', () => {
 
 	afterEach(function () {
 		restoreAll(originals);
-		delete require.cache[require.resolve('../src/api/topics')];
+		delete require.cache[require.resolve('../../../src/api/topics')];
 	});
 
 	it('persists followup, emits socket event and fires hook', async function () {
@@ -93,20 +93,20 @@ describe('followup missing topic (no extra deps)', () => {
 
 	beforeEach(function () {
 		originals = [];
-		topicsModule = require('../src/topics');
-		guardModule = require('../src/topics/followup-guard');
+		topicsModule = require('../../../src/topics');
+		guardModule = require('../../../src/topics/followup-guard');
 
 		replace(topicsModule, 'exists', async () => false, originals);
 		replace(guardModule, 'assertCanRequestFollowup', async () => {}, originals);
 		replace(guardModule, 'assertCooldownAndMark', async () => {}, originals);
 
-		delete require.cache[require.resolve('../src/api/topics')];
-		topicsAPI = require('../src/api/topics');
+		delete require.cache[require.resolve('../../../src/api/topics')];
+		topicsAPI = require('../../../src/api/topics');
 	});
 
 	afterEach(function () {
 		restoreAll(originals);
-		delete require.cache[require.resolve('../src/api/topics')];
+		delete require.cache[require.resolve('../../../src/api/topics')];
 	});
 
 	it('throws 404 with .status set', async () => {

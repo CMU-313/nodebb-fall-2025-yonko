@@ -1,12 +1,12 @@
 'use strict';
 
 const assert = require('assert');
-const User = require('../src/user');
-const groups = require('../src/groups');
-const categories = require('../src/categories');
-const topics = require('../src/topics');
-const apiCategories = require('../src/api/categories');
-const guard = require('../src/topics/followup-guard');
+const User = require('../../../src/user');
+const groups = require('../../../src/groups');
+const categories = require('../../../src/categories');
+const topics = require('../../../src/topics');
+const apiCategories = require('../../../src/api/categories');
+const guard = require('../../../src/topics/followup-guard');
 
 describe('Follow-up guard', () => {
 	let uidStudent;

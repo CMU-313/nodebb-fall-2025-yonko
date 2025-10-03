@@ -22,6 +22,7 @@ const intFields = [
 	'timestamp', 'upvotes', 'downvotes',
 	'lastposttime', 'deleterUid',
 	'followupPending', 'followupRequestedBy', 'followupLastPingAt',
+	'score',
 ];
 
 module.exports = function (Topics) {

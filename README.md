@@ -1,6 +1,6 @@
 # ![NodeBB](public/images/sm-card.png)
 
-## Team Member Names 
+## Team Member Names
 - Arielle
 - Estu
 - Gio

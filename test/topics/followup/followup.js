@@ -7,12 +7,12 @@
 const assert = require('assert');
 const nconf = require('nconf');
 
-const categories = require('../src/categories');
-const topics = require('../src/topics');
-const User = require('../src/user');
-const request = require('../src/request');
-const topicsAPI = require('../src/api/topics');
-const groups = require('../src/groups');
+const categories = require('../../../src/categories');
+const topics = require('../../../src/topics');
+const User = require('../../../src/user');
+const request = require('../../../src/request');
+const topicsAPI = require('../../../src/api/topics');
+const groups = require('../../../src/groups');
 
 
 

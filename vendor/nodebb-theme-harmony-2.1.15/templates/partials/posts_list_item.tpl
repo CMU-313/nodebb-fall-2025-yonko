@@ -1,7 +1,8 @@
 <li component="post" class="posts-list-item  {{{ if ./deleted }}} deleted{{{ else }}}{{{ if ./topic.deleted }}} deleted{{{ end }}}{{{ end }}}{{{ if ./topic.scheduled }}} scheduled{{{ end }}}" data-pid="{./pid}" data-uid="{./uid}">
     <hr/>
     <a class="topic-title fw-semibold fs-5 mb-2 text-reset text-break d-block" href="{config.relative_path}/post/{encodeURIComponent(./pid)}">
-    {{{ if ./isMainPost }}}<i class="fa fa-book text-muted" title="[[topic:topic]]"></i> {{{ end }}}{./topic.title}
+    {{{ if ./isMainPost }}}<i class="fa fa-book text-muted" title="[[topic:topic]]"></i> {{{ end }}}
+    {{{ if ./topic.highAttention }}}<span class="badge badge border border-gray-300 text-body me-1"><i class="fa fa-exclamation-circle"></i> High Attention</span>{{{ end }}}{./topic.title}
     </a>
 
     <div class="post-body d-flex flex-column gap-1 mb-2">

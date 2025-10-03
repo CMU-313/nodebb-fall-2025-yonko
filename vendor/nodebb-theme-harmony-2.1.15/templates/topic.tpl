@@ -25,7 +25,7 @@
 		<div class="d-flex gap-2 flex-wrap">
 			<div class="d-flex flex-column gap-3 flex-grow-1 flex-1">
 				<h1 component="post/header" class="tracking-tight fw-semibold fs-3 mb-0 text-break {{{ if config.theme.centerHeaderElements }}}text-center{{{ end }}}">
-					<span class="topic-title" component="topic/title">{title}</span>
+					<span class="topic-title" component="topic/title">{{{ if highAttention }}}<span class="badge badge border border-gray-300 text-body me-1"><i class="fa fa-exclamation-circle"></i> High attention</span>{{{ end }}}{title}</span>
 				</h1>
 
 				<div class="topic-info d-flex gap-2 align-items-center flex-wrap {{{ if config.theme.centerHeaderElements }}}justify-content-center{{{ end }}}">

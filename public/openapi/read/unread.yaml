@@ -193,6 +193,8 @@ get:
                                 type: string
                             index:
                               type: number
+                            highAttention:
+                              type: boolean
                   topicCount:
                     type: number
                   title:

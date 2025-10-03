@@ -13,6 +13,7 @@ const categories = require('../categories');
 const utils = require('../utils');
 const translator = require('../translator');
 const plugins = require('../plugins');
+const meta = require('../meta');
 
 // Parses ints from DB on read, so API returns numbers not strings.
 const intFields = [
@@ -181,6 +182,23 @@ function modifyTopic(topic, fields) {
 		topic.votes = topic.upvotes - topic.downvotes;
 	}
 
+	// Determine fetch mode: only add derived fields when fetching all or explicitly requested
+	const fetchAll = !fields || fields.length === 0;
+
+	// High-attention badge: derived from topic.score (which tracks main post net votes)
+	// Only include when fetching all fields, or when 'highAttention' or 'score' is explicitly requested.
+	if (fetchAll || (Array.isArray(fields) && (fields.includes('highAttention') || fields.includes('score')))) {
+		try {
+			const threshold = Number(meta.config['attention:scoreThreshold']) || 0;
+			// topic.score may be undefined in some selective-field fetches; coerce safely
+			const score = Number(topic.score) || 0;
+			topic.highAttention = score >= threshold;
+		} catch (e) {
+			// Fail-safe: don't break existing payloads if Meta isn't available
+			topic.highAttention = false;
+		}
+	}
+
 	if (fields.includes('teaserPid') || !fields.length) {
 		topic.teaserPid = topic.teaserPid || null;
 	}
@@ -199,7 +217,6 @@ function modifyTopic(topic, fields) {
 	}
 
 	// FOLLOWUP: expose nested only when explicitly requested
-	const fetchAll = !fields || fields.length === 0; // "fetch all" mode
 	const wantsFollowup = Array.isArray(fields) && fields.includes('followup');
 	if (wantsFollowup) {
 		// Coerce/normalize flat values; default if missing

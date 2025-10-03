@@ -105,6 +105,8 @@ get:
                   score:
                     type: number
                     description: Net votes of the main post (upvotes minus downvotes).
+                  highAttention:
+                    type: boolean
                   unreplied:
                     type: boolean
                   icons:

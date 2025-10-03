@@ -194,6 +194,12 @@
 				</div>
 
 				<div class="mb-3">
+					<label class="form-label" for="attentionScoreThreshold">High attention threshold</label>
+					<input id="attentionScoreThreshold" type="number" class="form-control" data-field="attention:scoreThreshold" />
+					<p class="form-text">Minimum net score (upvotes minus downvotes of the main post) a topic needs to be marked as high attention.</p>
+				</div>
+
+				<div class="mb-3">
 					<label class="form-label" for="recentMaxTopics">[[admin/settings/post:recent.max-topics]]</label>
 					<input id="recentMaxTopics" type="text" class="form-control" value="200" data-field="recentMaxTopics">
 				</div>

@@ -20,6 +20,7 @@ const categories = require('../../../src/categories');
 const user = require('../../../src/user');
 const apiPosts = require('../../../src/api/posts');
 const request = require('../../../src/request');
+const meta = require('../../../src/meta');
 
 describe('topics/score (topic-level score derived from main post votes)', () => {
 	let authorUid;
@@ -119,5 +120,108 @@ describe('topics/score (topic-level score derived from main post votes)', () => 
 		// zset score should remain 0 as well
 		const zscore = await db.sortedSetScore(`cid:${cid}:tids:score`, tid);
 		assert.strictEqual(zscore, 0);
+	});
+
+	describe('category score sort', () => {
+		const scoreTopics = [];
+		let fallbackCid;
+		let fallbackTid;
+		let originalTopicsPerPage;
+		let originalUsePagination;
+
+		before(async () => {
+			originalTopicsPerPage = meta.config.topicsPerPage;
+			originalUsePagination = meta.config.usePagination;
+			meta.config.topicsPerPage = 2;
+			meta.config.usePagination = 1;
+
+			const extraVoters = await Promise.all([
+				user.create({ username: 'score-voter-a' }),
+				user.create({ username: 'score-voter-b' }),
+				user.create({ username: 'score-voter-c' }),
+			]);
+			const voters = [voterUid, ...extraVoters];
+
+			const configs = [
+				{ title: 'Score sort high', votes: 4 },
+				{ title: 'Score sort mid', votes: 2 },
+				{ title: 'Score sort low', votes: 1 },
+			];
+
+			for (const config of configs) {
+				// eslint-disable-next-line no-await-in-loop
+				const result = await topics.post({
+					uid: authorUid,
+					cid,
+					title: config.title,
+					content: `${config.title} content`,
+				});
+				const { tid: newTid } = result.topicData;
+				scoreTopics.push({ tid: newTid, score: config.votes });
+				for (let i = 0; i < config.votes; i += 1) {
+					// eslint-disable-next-line no-await-in-loop
+					await apiPosts.upvote({ uid: voters[i] }, { pid: result.postData.pid, room_id: `topic_${newTid}` });
+				}
+			}
+
+			const fallbackCategory = await categories.create({
+				name: 'Score sort fallback',
+				description: 'Fallback score zset',
+			});
+			fallbackCid = fallbackCategory.cid;
+			const fallbackTopic = await topics.post({
+				uid: authorUid,
+				cid: fallbackCid,
+				title: 'Fallback topic',
+				content: 'Fallback content',
+			});
+			fallbackTid = fallbackTopic.topicData.tid;
+			await db.sortedSetRemove(`cid:${fallbackCid}:tids:score`, fallbackTid);
+		});
+
+		after(() => {
+			meta.config.topicsPerPage = originalTopicsPerPage;
+			meta.config.usePagination = originalUsePagination;
+		});
+
+		it('returns topics ordered by descending score', async () => {
+			const expected = scoreTopics
+				.slice()
+				.sort((a, b) => b.score - a.score)
+				.concat({ tid, score: 0 })
+				.map(item => item.tid);
+
+			const { body } = await request.get(`${nconf.get('url')}/api/category/${cid}?sort=score_desc`);
+			const returned = body.topics.map(topic => topic.tid);
+
+			assert.strictEqual(returned.length, meta.config.topicsPerPage);
+			assert.deepStrictEqual(returned, expected.slice(0, returned.length));
+
+			const scores = body.topics.map(topic => topic.score);
+			const expectedScores = scoreTopics.slice().sort((a, b) => b.score - a.score).map(item => item.score);
+			assert.deepStrictEqual(scores, expectedScores.slice(0, scores.length));
+		});
+
+		it('supports pagination when sorting by score', async () => {
+			const expected = scoreTopics
+				.slice()
+				.sort((a, b) => b.score - a.score)
+				.concat({ tid, score: 0 })
+				.map(item => item.tid);
+
+			const { body: pageOne } = await request.get(`${nconf.get('url')}/api/category/${cid}?sort=score_desc&page=1`);
+			assert.deepStrictEqual(pageOne.topics.map(topic => topic.tid), expected.slice(0, 2));
+			assert.strictEqual(pageOne.pagination.currentPage, 1);
+
+			const { body: pageTwo } = await request.get(`${nconf.get('url')}/api/category/${cid}?sort=score_desc&page=2`);
+			assert.strictEqual(pageTwo.pagination.currentPage, 2);
+			assert.deepStrictEqual(pageTwo.topics.map(topic => topic.tid), expected.slice(2, 4));
+		});
+
+		it('falls back to default sort when score zset is empty', async () => {
+			const { body } = await request.get(`${nconf.get('url')}/api/category/${fallbackCid}?sort=score_desc`);
+			assert(body.topics.length >= 1);
+			assert.strictEqual(body.topics[0].tid, fallbackTid);
+		});
 	});
 });

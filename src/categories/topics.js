@@ -116,10 +116,19 @@ module.exports = function (Categories) {
 			most_posts: `cid:${cid}:tids:posts`,
 			most_votes: `cid:${cid}:tids:votes`,
 			most_views: `cid:${cid}:tids:views`,
+			score_desc: `cid:${cid}:tids:score`,
 			no_replies: 'NO_REPLIES',
 		};
 
-		const mainSet = sortToSet.hasOwnProperty(sort) ? sortToSet[sort] : `cid:${cid}:tids`;
+		let mainSet = sortToSet.hasOwnProperty(sort) ? sortToSet[sort] : `cid:${cid}:tids`;
+
+		if (sort === 'score_desc') {
+			const hasScores = await db.sortedSetCard(mainSet);
+			if (!hasScores) {
+				mainSet = `cid:${cid}:tids`;
+			}
+		}
+
 		const set = new Set([mainSet]);
 
 		// If the caller requested 'no_replies' we return no replies for above
@@ -291,9 +300,9 @@ module.exports = function (Categories) {
 				most_posts: `cid:${cid}:tids:posts`,
 				most_votes: `cid:${cid}:tids:votes`,
 				most_views: `cid:${cid}:tids:views`,
+				score_desc: `cid:${cid}:tids:score`,
 			};
-
-			return sortToSet[sort];
+			return sortToSet[sort] || sortToSet.recently_replied;
 		}
 
 		const scores = await Promise.all(tids.map(async (tid, idx) => {

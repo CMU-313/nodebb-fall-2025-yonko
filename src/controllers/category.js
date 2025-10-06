@@ -25,7 +25,7 @@ const validSorts = [
 	'recently_replied', 'recently_created', 'most_posts', 'most_votes', 'most_views',
 	// Allow server-side rendering to accept the 'no_replies' sort so the initial
 	// category page respects the frontend 'No Replies' selection.
-	'no_replies',
+	'no_replies', 'score_desc',
 ];
 
 categoryController.get = async function (req, res, next) {
@@ -155,7 +155,9 @@ categoryController.get = async function (req, res, next) {
 	// For the 'no_replies' sort we don't yet have a translation key in all
 	// language bundles in this workspace, so set a human-friendly label here
 	// to avoid showing the raw sort key in the UI.
-	if (sort === 'no_replies') {
+	if (sort === 'score_desc') {
+		categoryData.sortOptionLabel = '[[topic:score-desc]]';
+	} else if (sort === 'no_replies') {
 		categoryData.sortOptionLabel = 'No Replies';
 	} else {
 		categoryData.sortOptionLabel = `[[topic:${validator.escape(String(sort)).replace(/_/g, '-')}]]`;

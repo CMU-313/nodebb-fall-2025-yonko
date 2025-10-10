@@ -10,6 +10,7 @@ module.exports = function (app, middleware, controllers) {
 	const router = express.Router();
 	app.use('/api', router);
 
+	
 	router.get('/config', [...middlewares, middleware.applyCSRF], helpers.tryRoute(controllers.api.getConfig));
 
 	router.get('/self', [...middlewares], helpers.tryRoute(controllers.user.getCurrentUser));
@@ -44,4 +45,16 @@ module.exports = function (app, middleware, controllers) {
 		middleware.canViewUsers,
 		middleware.checkAccountPermissions,
 	], helpers.tryRoute(controllers.accounts.edit.uploadPicture));
+
+	// Conceptual additions to src/routes/api.js
+
+	// Route for the Student's click
+	router.post('/topic/:tid/requestFollowup', 
+		[...middlewares, middleware.exposeUid, middleware.ensureLoggedIn, middleware.applyCSRF],
+		helpers.tryRoute(controllers.write.topics.requestFollowup));
+
+	// Route for the Instructor's click
+	router.post('/topic/:tid/resolveFollowup', 
+		[...middlewares, middleware.exposeUid, middleware.ensureLoggedIn, middleware.applyCSRF],
+		helpers.tryRoute(controllers.write.topics.resolveFollowup));
 };

@@ -6,7 +6,7 @@ We want to emulate the action that is available on Piazza, which the ability for
 
 **How to Use Feature**
 
-This feature is only available to an teacher role (which we assume is an admin). 
+This feature is only available to an teacher role (which we assume is an admin/moderator).
 1. Create a post from a registered account under a topic
 2. Using a teacher role login and go to a topic.
 3. In the topic, there should be options to sort (Should start with Recently Replied). This option is the third option on the bar, after Tracking and All Tags. 

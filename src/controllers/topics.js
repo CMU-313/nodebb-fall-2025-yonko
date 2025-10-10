@@ -70,7 +70,7 @@ topicsController.get = async function getTopic(req, res, next) {
 	// (NEW ADDITION) Ensure tid is passed for the button's data-tid attribute
 	topicData.tid = tid; 
 	topicData.canRequestFollowup = topicData.isStudent && !isFollowUpRequested; 
-	topicData.canResolveFollowup = topicData.isInstructor & isFollowUpRequested;  
+	topicData.canResolveFollowup = topicData.isInstructor && isFollowUpRequested;  
 	// --- NEW LOGIC FOR FOLLOW-UP UI FLAGS (END) ---
 
 	let currentPage = parseInt(req.query.page, 10) || 1;

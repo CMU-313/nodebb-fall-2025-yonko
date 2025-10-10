@@ -4,6 +4,6 @@
                 data-action="resolve-followup">
                 📝 Follow Up Requested-- resolve??
         </button>
-{{{ else }}}
+{{{ end }}}
 
 

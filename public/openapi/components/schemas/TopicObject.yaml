@@ -29,17 +29,6 @@ TopicObject:
               type: string
             disabled:
               type: number
-# --- ADDITIONS REQUIRED FOR API TESTS TO PASS ---
-        isFollowUpRequested:
-          type: boolean
-          description: Indicates if a follow-up request is currently pending on the topic for the viewing user.
-        isInstructor:
-          type: boolean
-          description: Indicates if the viewing user has the privilege to resolve follow-ups.
-        isStudent:
-          type: boolean
-          description: Indicates if the viewing user has the privilege to request a follow-up.
-        # -------------------------------------------------  
         user:
           type: object
           properties:

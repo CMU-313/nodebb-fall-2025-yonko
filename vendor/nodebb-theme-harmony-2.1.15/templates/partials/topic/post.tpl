@@ -43,13 +43,6 @@
 						</a>
 					</div>
 
-					<div class="btn-group">
-						<button class="d-flex px-3 gap-2 align-items-center btn btn-sm btn-primary fw-semibold" type="button">
-							<i class="fa fa-fw fa-reply"></i>
-							<span class="text-truncate text-nowrap">Request Follow Up</span>
-						</button>
-					</div>
-
 					<a class="fw-bold text-nowrap text-truncate" href="{{{ if ./user.userslug }}}{config.relative_path}/user/{./user.userslug}{{{ else }}}#{{{ end }}}" data-username="{posts.user.username}" data-uid="{posts.user.uid}">{posts.user.displayname}</a>
 				</div>
 
@@ -81,7 +74,13 @@
 				</div>
 				{{{ end }}}
 			</div>
+			
+
 			<div class="d-flex align-items-center gap-1 justify-content-end">
+				THIS IS WHERE I SHALL BE PLACING MY FOLLOWUP BTN
+				
+				<!-- IMPORT partials/buttons/univFollowUp.tpl -->
+
 				<span class="bookmarked opacity-0 text-primary"><i class="fa fa-bookmark-o"></i></span>
 				<a href="{config.relative_path}/post/{encodeURIComponent(./pid)}" class="post-index text-muted d-none d-md-inline">#{increment(./index, "1")}</a>
 			</div>

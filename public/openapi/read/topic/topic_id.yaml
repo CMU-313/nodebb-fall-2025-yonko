@@ -114,6 +114,23 @@ get:
                     items:
                       type: string
                       description: HTML that is rendered by the theme
+                  # --- ADDITIONS REQUIRED FOR API TESTS TO PASS ---
+                  isFollowUpRequested:
+                    type: boolean
+                    description: Indicates if a follow-up request is currently pending on the topic for the viewing user.
+                  canRequestFollowup:
+                    type: boolean
+                    description: Indicates if a user has the permissions to request a followup.
+                  canResolveFollowup:
+                    type: boolean
+                    description: Indicates if a user has the permissions to resolve a followup.
+                  isInstructor:
+                    type: boolean
+                    description: Indicates if the viewing user has the privilege to resolve follow-ups.
+                  isStudent:
+                    type: boolean
+                    description: Indicates if the viewing user has the privilege to request a follow-up.
+                  # -------------------------------------------------  
                   privileges:
                     type: object
                     description: Map of privilege flags; may expand over time

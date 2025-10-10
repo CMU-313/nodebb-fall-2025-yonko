@@ -23,6 +23,9 @@ const relative_path = nconf.get('relative_path');
 const upload_url = nconf.get('upload_url');
 const validSorts = ['oldest_to_newest', 'newest_to_oldest', 'most_votes'];
 
+
+// new version w/ followup status
+
 topicsController.get = async function getTopic(req, res, next) {
 	const tid = req.params.topic_id;
 	if (
@@ -31,24 +34,49 @@ topicsController.get = async function getTopic(req, res, next) {
 	) {
 		return next();
 	}
+
 	let postIndex = parseInt(req.params.post_index, 10) || 1;
 	const topicData = await topics.getTopicData(tid);
+
 	if (!topicData) {
 		return next();
 	}
+
+	// --- MODIFIED PROMISE.ALL TO INCLUDE FOLLOW-UP STATUS (START) ---
 	const [
 		userPrivileges,
 		settings,
 		rssToken,
+		followupStatus, // (NEW ADDITION) Variable to hold follow-up status
 	] = await Promise.all([
 		privileges.topics.get(tid, req.uid),
 		user.getSettings(req.uid),
 		user.auth.getFeedToken(req.uid),
+		topics.getTopicFields(tid, ['followUpRequested']), // (NEW ADDITION) Fetch the status flag
 	]);
+	// --- MODIFIED PROMISE.ALL TO INCLUDE FOLLOW-UP STATUS (END) ---
+
+	// --- NEW LOGIC FOR FOLLOW-UP UI FLAGS (START) ---
+	const isFollowUpRequested = followupStatus.followUpRequested || false;
+	const isInstructor = userPrivileges['topics:resolveFollowup'];
+
+	// Add flags to the data object that will be passed to the template (.tpl file)
+	topicData.isFollowUpRequested = isFollowUpRequested; // (NEW ADDITION)
+	topicData.isInstructor = isInstructor; // (NEW ADDITION) Needed for the instructor's 'resolve' button
+	
+	// (NEW ADDITION) Logic: Student can request if they have the privilege AND are NOT an instructor
+	topicData.isStudent = userPrivileges['topics:followup'] && !isInstructor;
+	
+	// (NEW ADDITION) Ensure tid is passed for the button's data-tid attribute
+	topicData.tid = tid; 
+	topicData.canRequestFollowup = topicData.isStudent && !isFollowUpRequested; 
+	topicData.canResolveFollowup = topicData.isInstructor && isFollowUpRequested;  
+	// --- NEW LOGIC FOR FOLLOW-UP UI FLAGS (END) ---
 
 	let currentPage = parseInt(req.query.page, 10) || 1;
 	const pageCount = Math.max(1, Math.ceil((topicData && topicData.postcount) / settings.postsPerPage));
 	const invalidPagination = (settings.usePagination && (currentPage < 1 || currentPage > pageCount));
+
 	if (
 		userPrivileges.disabled ||
 		invalidPagination ||
@@ -72,6 +100,7 @@ topicsController.get = async function getTopic(req, res, next) {
 	if (utils.isNumber(postIndex) && topicData.postcount > 0 && (postIndex < 1 || postIndex > topicData.postcount)) {
 		return helpers.redirect(res, `/topic/${tid}/${req.params.slug}${postIndex > topicData.postcount ? `/${topicData.postcount}` : ''}${generateQueryString(req.query)}`);
 	}
+
 	postIndex = Math.max(1, postIndex);
 	const sort = validSorts.includes(req.query.sort) ? req.query.sort : settings.topicPostSort;
 	const set = sort === 'most_votes' ? `tid:${tid}:posts:votes` : `tid:${tid}:posts`;
@@ -80,6 +109,7 @@ topicsController.get = async function getTopic(req, res, next) {
 	if (!req.query.page) {
 		currentPage = calculatePageFromIndex(postIndex, settings);
 	}
+
 	if (settings.usePagination && req.query.page) {
 		const top = ((currentPage - 1) * settings.postsPerPage) + 1;
 		const bottom = top + settings.postsPerPage;
@@ -87,6 +117,7 @@ topicsController.get = async function getTopic(req, res, next) {
 			postIndex = top;
 		}
 	}
+
 	const { start, stop } = calculateStartStop(currentPage, postIndex, settings);
 
 	await topics.getTopicWithPosts(topicData, set, req.uid, start, stop, reverse);
@@ -112,6 +143,7 @@ topicsController.get = async function getTopic(req, res, next) {
 	topicData.privateUploads = meta.config.privateUploads === 1;
 	topicData.showPostPreviewsOnHover = meta.config.showPostPreviewsOnHover === 1;
 	topicData.sortOptionLabel = `[[topic:${validator.escape(String(sort)).replace(/_/g, '-')}]]`;
+
 	if (!meta.config['feeds:disableRSS']) {
 		topicData.rssFeedUrl = `${relative_path}/topic/${topicData.tid}.rss`;
 		if (req.loggedIn) {
@@ -426,4 +458,50 @@ topicsController.getUnanswered = async function (req, res) {
 
 	const result = await topicsAPI.getUnanswered(req, { cid, start, stop });
 	res.json(result);
+};
+
+// New controller method to fetch topic data and user privileges for follow-up feature
+
+topicsController.getTopicDataAndPrivileges = async function (req, res) {
+	const {tid} = req.params;
+	const {uid} = req; // Available thanks to middleware.exposeUid
+
+	try {
+		// A. Fetch all necessary data concurrently
+		const [topicPrivileges, topicStatus] = await Promise.all([
+			// 1. Get the full privilege map (includes topics:followup & topics:resolveFollowup)
+			privileges.topics.get(tid, uid), 
+			// 2. Get the specific status flag from the database
+			// NOTE: Assuming 'followUpRequested' is the field name on the topic object.
+			topics.getTopicFields(tid, ['followUpRequested']), 
+		]);
+
+		// B. Structure the final response for the frontend (Crucial for conditional rendering)
+		const isFollowUpRequested = topicStatus.followUpRequested || false;
+		
+		const responseData = {
+			isFollowUpRequested: isFollowUpRequested, 
+			
+			// Instructor check: Can the user resolve the request? (Admin/Mod/Allowed)
+			isInstructor: topicPrivileges['topics:resolveFollowup'], 
+			
+			// Student check: Can the user request a follow-up AND is NOT an instructor?
+			// (We check !isInstructor to ensure the UI shows EITHER "Request" OR "Resolve", not both)
+			isStudent: topicPrivileges['topics:followup'] && !topicPrivileges['topics:resolveFollowup'], 
+		};
+
+		// helpers.formatApiResponse is typically used for JSON API responses, but since
+		// the standard in this file seems to be direct JSON response for API calls (like teaser/pagination), 
+		// we'll stick to that, or use a helper if available. Using res.json for simplicity.
+		return res.json(responseData);
+
+	} catch (error) {
+		console.error(`[topicsController.getTopicDataAndPrivileges] tid: ${tid}, uid: ${uid}`, error);
+		
+		// If the topic isn't found or privileges fail, return an appropriate status
+		if (error.message && error.message.includes('no-topic')) {
+			return res.status(404).json({ error: 'Topic not found.' });
+		}
+		return res.status(500).json({ error: 'Failed to retrieve topic data and privileges.' });
+	}
 };

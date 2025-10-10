@@ -197,7 +197,7 @@ TopicObjectSlim:
   description: The output of a call to `Topics.getTopicField`, these properties are always present no matter the fields passed in
   allOf:
     - type: object
-      properties:
+      properties:  
         tid:
           type: number
           description: A topic identifier

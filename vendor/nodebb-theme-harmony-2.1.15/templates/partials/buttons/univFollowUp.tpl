@@ -7,9 +7,9 @@
 {{{ else }}}
     {{{ if canResolveFollowup }}}
         <button class="btn btn-warning btn-sm text-nowrap" 
-                id="instructor-followup" 
-                data-action="resolve-followup">
-                📝 Follow Up Requested-- resolve??
+            id="instructor-followup" 
+            data-action="resolve-followup">
+            📝 Follow Up Requested-- resolve??
         </button>
     {{{ end }}}
 

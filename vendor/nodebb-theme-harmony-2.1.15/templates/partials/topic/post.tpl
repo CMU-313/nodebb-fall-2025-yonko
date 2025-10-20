@@ -77,8 +77,7 @@
 			
 
 			<div class="d-flex align-items-center gap-1 justify-content-end">
-				THIS IS WHERE I SHALL BE PLACING MY FOLLOWUP BTN
-				
+				If button exists its here --> 
 				<!-- IMPORT partials/buttons/univFollowUp.tpl -->
 
 				<span class="bookmarked opacity-0 text-primary"><i class="fa fa-bookmark-o"></i></span>

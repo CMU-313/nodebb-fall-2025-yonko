@@ -47,7 +47,7 @@ module.exports = function (app, middleware, controllers) {
 	], helpers.tryRoute(controllers.accounts.edit.uploadPicture));
 
 	// Conceptual additions to src/routes/api.js
-/*
+
 	// Route for the Student's click
 	router.post('/topic/:tid/requestFollowup', 
 		[...middlewares, middleware.exposeUid, middleware.ensureLoggedIn, middleware.applyCSRF],
@@ -57,5 +57,5 @@ module.exports = function (app, middleware, controllers) {
 	router.post('/topic/:tid/resolveFollowup', 
 		[...middlewares, middleware.exposeUid, middleware.ensureLoggedIn, middleware.applyCSRF],
 		helpers.tryRoute(controllers.write.topics.resolveFollowup));
-*/
+
 };

@@ -1,0 +1,26 @@
+
+> nodebb@4.4.6 stryker
+> stryker run
+
+[32m21:36:22 (4549) INFO ProjectReader[39m Found 1 of 2 file(s) to be mutated.
+[32m21:36:22 (4549) INFO Instrumenter[39m Instrumented 1 source file(s) with 5 mutant(s)
+[32m21:36:22 (4549) INFO ConcurrencyTokenProvider[39m Creating 7 test runner process(es).
+[32m21:36:24 (4549) INFO BroadcastReporter[39m Detected that current console does not support the "progress" reporter, downgrading to "progress-append-only" reporter
+[32m21:36:26 (4549) INFO DryRunExecutor[39m Starting initial test run (mocha test runner with "off" coverage analysis). This may take a while.
+[32m21:36:26 (4549) INFO DryRunExecutor[39m Initial test run succeeded. Ran 2 tests in 0 seconds (net 10 ms, overhead 65 ms).
+
+All tests/math.spec.cjs
+  ✓ isPositive true for 0 and positives (killed 4)
+  ✓ isPositive false for negatives (killed 1)
+
+Ran 1.20 tests per mutant on average.
+----------|------------------|----------|-----------|------------|----------|----------|
+          | % Mutation score |          |           |            |          |          |
+File      |  total | covered | # killed | # timeout | # survived | # no cov | # errors |
+----------|--------|---------|----------|-----------|------------|----------|----------|
+All files | 100.00 |  100.00 |        5 |         0 |          0 |        0 |        0 |
+ math.cjs | 100.00 |  100.00 |        5 |         0 |          0 |        0 |        0 |
+----------|--------|---------|----------|-----------|------------|----------|----------|
+[32m21:36:29 (4549) INFO JsonReporter[39m Your report can be found at: file:///workspaces/nodebb-fall-2025-yonko/reports/mutation/mutation.json
+[32m21:36:29 (4549) INFO HtmlReporter[39m Your report can be found at: file:///workspaces/nodebb-fall-2025-yonko/reports/mutation/mutation.html
+[32m21:36:29 (4549) INFO MutationTestExecutor[39m Done in 7 seconds.

@@ -28,6 +28,7 @@ jobs:
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_ADMIN }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
           password: ${{ secrets.ADMIN_PASSWORD }}
           script: | 
             cd ${{ secrets.REPO_NAME }}

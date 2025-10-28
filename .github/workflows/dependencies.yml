@@ -7,42 +7,50 @@ on:
 jobs:
   check-dependencies:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18.x'
-      
+
       - name: Install dependencies
-        run: npm install
-      
+        run: npm ci
+
       - name: Install Madge
-        run: npm install --no-audit --no-fund --save-dev madge
-      
+        run: npm install --save-dev madge
+
       - name: Run Madge Analysis
         run: |
-          # Run madge and capture output to file for upload and later checking
-          CIRCULAR_OUTPUT=$(npx madge --circular --extensions js,ts src/ 2>&1 || true)
-          echo "$CIRCULAR_OUTPUT" | tee madge-output.txt
-      
+          echo "🔍 Running Madge circular dependency analysis..."
+          # Ensure src directory exists
+          if [ ! -d "src" ]; then
+            echo "❌ No src directory found. Please update the path in this workflow."
+            exit 1
+          fi
+          
+          # Run madge and save output regardless of exit code
+          npx madge --circular --extensions ts,js src/ > madge-output.txt 2>&1 || true
+
+          echo "Madge output:"
+          cat madge-output.txt
+
       - name: Check for circular dependencies
         run: |
-          # If madge produced any output on the circular check, fail the job.
-          if [ -s madge-output.txt ] && grep -qi "circular" madge-output.txt; then
+          if grep -q "circular" madge-output.txt; then
             echo "⚠️ Circular dependencies detected!"
             cat madge-output.txt
             exit 1
           else
             echo "✅ No circular dependencies found"
           fi
-      
+
       - name: Upload Madge Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: madge-analysis
-          path: ./madge-output.txt
+          path: madge-output.txt

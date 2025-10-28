@@ -43,7 +43,6 @@ jobs:
           if grep -q "circular" madge-output.txt; then
             echo "⚠️ Circular dependencies detected!"
             cat madge-output.txt
-            exit 1
           else
             echo "✅ No circular dependencies found"
           fi

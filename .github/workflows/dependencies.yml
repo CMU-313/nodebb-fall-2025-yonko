@@ -9,37 +9,40 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/upload-artifact@v4
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
-        
-    - name: Install dependencies
-      run: npm ci
+      - name: Checkout repository
+        uses: actions/checkout@v4
       
-    - name: Install Madge
-      run: npm install --save-dev madge
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
       
-    - name: Run Madge Analysis
-      run: |
-        npx madge --circular --extensions js,ts src/ > madge-output.txt 2>&1
-        cat madge-output.txt
-        
-    - name: Check for circular dependencies
-      run: |
-        if npx madge --circular --extensions js,ts src/ | grep -q "Circular"; then
-          echo "⚠️ Circular dependencies detected!"
-          npx madge --circular --extensions js,ts src/
-          exit 1
-        else
-          echo "✅ No circular dependencies found"
-        fi
-        
-    - name: Upload Madge Report
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: madge-analysis
-        path: ./madge-output.txt
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Install Madge
+        run: npm install --no-audit --no-fund --save-dev madge
+      
+      - name: Run Madge Analysis
+        run: |
+          # Run madge and capture output to file for upload and later checking
+          CIRCULAR_OUTPUT=$(npx madge --circular --extensions js,ts src/ 2>&1 || true)
+          echo "$CIRCULAR_OUTPUT" | tee madge-output.txt
+      
+      - name: Check for circular dependencies
+        run: |
+          # If madge produced any output on the circular check, fail the job.
+          if [ -s madge-output.txt ] && grep -qi "circular" madge-output.txt; then
+            echo "⚠️ Circular dependencies detected!"
+            cat madge-output.txt
+            exit 1
+          else
+            echo "✅ No circular dependencies found"
+          fi
+      
+      - name: Upload Madge Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: madge-analysis
+          path: ./madge-output.txt

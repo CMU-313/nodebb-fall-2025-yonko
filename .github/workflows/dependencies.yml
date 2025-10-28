@@ -33,8 +33,8 @@ jobs:
           fi
           
           # Run madge and save output regardless of exit code
-          madge --circular --extensions ts,js src/ > madge-output.txt 2>&1 || true
-
+          npx madge --circular src/ > madge-output.txt 2>&1 || true
+          
           echo "Madge output:"
           cat madge-output.txt
 
@@ -43,6 +43,7 @@ jobs:
           if grep -q "circular" madge-output.txt; then
             echo "⚠️ Circular dependencies detected!"
             cat madge-output.txt
+            exit 1
           else
             echo "✅ No circular dependencies found"
           fi

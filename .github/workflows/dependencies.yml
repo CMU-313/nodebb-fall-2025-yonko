@@ -1,4 +1,4 @@
-name: Dependency Analysis
+name: Dependency Analysis (No Package Manifest)
 
 on:
   pull_request:
@@ -17,15 +17,15 @@ jobs:
         with:
           node-version: '18.x'
 
-      - name: Install dependencies
-        run: npm install
-
-      - name: Install Madge
-        run: npm install --save-dev madge
+      - name: Install Madge Globally
+        run: |
+          echo "📦 Installing Madge globally..."
+          npm install -g madge
 
       - name: Run Madge Analysis
         run: |
           echo "🔍 Running Madge circular dependency analysis..."
+          
           # Ensure src directory exists
           if [ ! -d "src" ]; then
             echo "❌ No src directory found. Please update the path in this workflow."
@@ -33,7 +33,7 @@ jobs:
           fi
           
           # Run madge and save output regardless of exit code
-          npx madge --circular --extensions ts,js src/ > madge-output.txt 2>&1 || true
+          madge --circular --extensions ts,js src/ > madge-output.txt 2>&1 || true
 
           echo "Madge output:"
           cat madge-output.txt

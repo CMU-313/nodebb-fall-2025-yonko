@@ -1,0 +1,55 @@
+name: Dependency Analysis (No Package Manifest)
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  check-dependencies:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+
+      - name: Install Madge Globally
+        run: |
+          echo "📦 Installing Madge globally..."
+          npm install -g madge
+
+      - name: Run Madge Analysis
+        run: |
+          echo "🔍 Running Madge circular dependency analysis..."
+          
+          # Ensure src directory exists
+          if [ ! -d "src" ]; then
+            echo "❌ No src directory found. Please update the path in this workflow."
+            exit 1
+          fi
+          
+          # Run madge and save output regardless of exit code
+          npx madge --circular src/ > madge-output.txt 2>&1 || true
+          
+          echo "Madge output:"
+          cat madge-output.txt
+
+      - name: Check for circular dependencies
+        run: |
+          if grep -q "circular" madge-output.txt; then
+            echo "⚠️ Circular dependencies detected!"
+            cat madge-output.txt
+          else
+            echo "✅ No circular dependencies found"
+          fi
+
+      - name: Upload Madge Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: madge-analysis
+          path: madge-output.txt

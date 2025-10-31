@@ -269,7 +269,7 @@ get:
                         - name
                         - updated
                         - latest
-                        - url
+                        # - url
                         - numInstalls
                         - isCompatible
                         - id

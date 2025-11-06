@@ -18,6 +18,10 @@ PostObject:
         For posts received via ActivityPub, it is the url of the original piece of content.
     content:
       type: string
+    isEnglish:
+      type: boolean
+    translatedContent:
+      type: string
     sourceContent:
       type: string
       nullable: true
@@ -120,8 +124,6 @@ PostObject:
           type: array
           items:
             $ref: ../../components/schemas/TagObject.yaml#/TagObject
-        highAttention:
-          type: boolean
       required:
         - uid
         - tid
@@ -171,6 +173,10 @@ PostDataObject:
           type: number
           description: A topic identifier
         content:
+          type: string
+        isEnglish:
+          type: boolean
+        translatedContent:
           type: string
         timestamp:
           type: number

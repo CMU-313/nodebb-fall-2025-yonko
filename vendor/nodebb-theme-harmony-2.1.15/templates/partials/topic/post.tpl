@@ -74,20 +74,22 @@
 				</div>
 				{{{ end }}}
 			</div>
-			
-
 			<div class="d-flex align-items-center gap-1 justify-content-end">
-				THIS IS WHERE I SHALL BE PLACING MY FOLLOWUP BTN
-				
-				<!-- IMPORT partials/buttons/univFollowUp.tpl -->
-
 				<span class="bookmarked opacity-0 text-primary"><i class="fa fa-bookmark-o"></i></span>
 				<a href="{config.relative_path}/post/{encodeURIComponent(./pid)}" class="post-index text-muted d-none d-md-inline">#{increment(./index, "1")}</a>
 			</div>
 		</div>
 
 		<div class="content text-break" component="post/content" itemprop="text">
-			{posts.content}
+			{posts.content}			
+			{{{if !posts.isEnglish }}}
+		        <div class="sensitive-content-message">
+		        <a class="btn btn-sm btn-primary view-translated-btn">Click here to view the translated message.</a>
+		        </div>
+		        <div class="translated-content" style="display:none;">
+		        {posts.translatedContent}
+		        </div>
+	        {{{end}}}
 		</div>
 
 		<div component="post/footer" class="post-footer border-bottom pb-2">

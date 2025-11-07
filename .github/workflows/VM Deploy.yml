@@ -35,5 +35,3 @@ jobs:
             git pull origin main
             docker compose down
             docker compose -f docker-compose-redis.yml up --build -d
-            docker compose -f docker-compose-redis.yml exec -T nodebb ./nodebb build
-            docker compose -f docker-compose-redis.yml restart nodebb

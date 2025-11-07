@@ -1,17 +1,12 @@
-
 /* eslint-disable strict */
-//var request = require('request');
 
 const translatorApi = module.exports;
 
-translatorApi.translate = function (postData) {
-	return ['is_english',postData];
+// minimal: call your Flask service and return tuple
+translatorApi.translate = async function (postData) {
+	const base = 'http://128.2.220.239:5000';
+	const content = encodeURIComponent(String(postData.content || ''));
+	const response = await fetch(`${base}/?content=${content}`);
+	const data = await response.json();
+	return [data.is_english, data.translated_content];
 };
-
-// translatorApi.translate = async function (postData) {
-//  Edit the translator URL below
-//  const TRANSLATOR_API = "TODO"
-//  const response = await fetch(TRANSLATOR_API+'/?content='+postData.content);
-//  const data = await response.json();
-//  return ['is_english','translated_content'];
-// };

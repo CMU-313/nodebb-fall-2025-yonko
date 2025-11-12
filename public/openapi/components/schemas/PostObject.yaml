@@ -124,6 +124,8 @@ PostObject:
           type: array
           items:
             $ref: ../../components/schemas/TagObject.yaml#/TagObject
+        highAttention:
+          type: boolean
       required:
         - uid
         - tid
